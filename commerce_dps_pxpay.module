@@ -13,7 +13,7 @@ define('COMMERCE_DPS_PXPAY_CANCEL_RETURN_URL', 'cart');
 define('COMMERCE_DPS_PXPAY_REFPREFIX', 'Website Order');
 
 /**
- * Implement hook_commerce_payment_method_info().
+ * Implements hook_commerce_payment_method_info().
  */
 function commerce_dps_pxpay_commerce_payment_method_info() {
   return array(
@@ -33,7 +33,7 @@ function commerce_dps_pxpay_commerce_payment_method_info() {
  * Implements hook_redirect_form().
  */
 function commerce_dps_pxpay_redirect_form($form, &$form_state, $order, $payment_method) {
-  // Return an error if the DPS payment gateway userid and key aren't configured.
+  // Return error if DPS payment gateway userid and key unconfigured.
   if (empty($payment_method['settings']['commerce_dps_pxpay_userid']) ||
     empty($payment_method['settings']['commerce_dps_pxpay_key'])
   ) {
@@ -42,11 +42,11 @@ function commerce_dps_pxpay_redirect_form($form, &$form_state, $order, $payment_
   }
 
   $settings = array(
-    // Return to the previous page when payment is canceled
+    // Return to the previous page when payment is canceled.
     'cancel_return' => url('checkout/' . $order->order_id . '/payment/back/' . $order->data['payment_redirect_key'], array('absolute' => TRUE)),
-    // Return to the payment redirect page for processing successful payments
+    // Return to the payment redirect page for processing successful payments.
     'return' => url('checkout/' . $order->order_id . '/payment/return/' . $order->data['payment_redirect_key'], array('absolute' => TRUE)),
-    // Specify the current payment method instance ID in the notify_url
+    // Specify the current payment method instance ID in the notify_url.
     'payment_method' => $payment_method['instance_id'],
   );
 
@@ -188,9 +188,9 @@ function commerce_dps_pxpay_redirect_form_validate($order, $payment_method) {
 
   $response = commerce_dps_pxpay_process_response($transaction);
 
-  // DPS validation
+  // DPS validation.
   if ($response['Success'] != "1") {
-    // not a success
+    // Not a success.
     commerce_dps_pxpay_form_transaction($payment_method, $order, $tokens, COMMERCE_PAYMENT_STATUS_FAILURE);
     watchdog('commerce_dps_pxpay', 'DPS PxPay transaction failed validation. Cart order ID: @cart_order', array('@cart_order' => $order->order->order_number), WATCHDOG_NOTICE);
 
@@ -225,6 +225,9 @@ function commerce_dps_pxpay_redirect_form_validate($order, $payment_method) {
 /**
  * Create a transaction and associate it with an order.
  *
+ * Set a status for the payment - one of COMMERCE_PAYMENT_STATUS_SUCCESS,
+ * COMMERCE_PAYMENT_STATUS_PENDING, or COMMERCE_PAYMENT_STATUS_FAILURE.
+ *
  * @TODO move to .inc ?
  */
 function commerce_dps_pxpay_form_transaction($payment_method, $order, $tokens, $transaction_status) {
@@ -236,7 +239,6 @@ function commerce_dps_pxpay_form_transaction($payment_method, $order, $tokens, $
   $transaction->currency_code = $settings['commerce_dps_pxpay_currency'];
   $transaction->remote_id = $tokens->data['payment_details']['pxpay_DpsTxnRef'];
 
-  // set a status for the payment - one of COMMERCE_PAYMENT_STATUS_SUCCESS, COMMERCE_PAYMENT_STATUS_PENDING or COMMERCE_PAYMENT_STATUS_FAILURE
   $transaction->status = $transaction_status;
   $transaction->message = 'Status @status, @statusdetail. Email: @vpstxid. Auth Code=@authcode.';
   $transaction->message_variables = array(
@@ -248,4 +250,3 @@ function commerce_dps_pxpay_form_transaction($payment_method, $order, $tokens, $
 
   commerce_payment_transaction_save($transaction);
 }
-
