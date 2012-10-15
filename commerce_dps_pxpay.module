@@ -192,9 +192,20 @@ function commerce_dps_pxpay_redirect_form_validate($order, $payment_method) {
     'server' => $settings['commerce_dps_pxpay_server'],
     'user_id' => $settings['commerce_dps_pxpay_userid'],
     'key' => $settings['commerce_dps_pxpay_key'],
-    'result' => $_GET['result'],
     'log' => $settings['commerce_dps_pxpay_log_transactions'],
   );
+  if (isset($_GET['result'])) {
+    $transaction['result'] = $_GET['result'];
+  }
+  else {
+    watchdog('commerce_dps_pxpay', 'Transaction result data not found.', array(), WATCHDOG_ERROR);
+    if (preg_match('/(\?|\&)result=/', $_SERVER['REQUEST_URI'])) {
+      watchdog('commerce_dps_pxpay', 'Please see !link for how to configure your webserver to accept DPS return requests.', array('!link' => l('drupal.org #1799294', 'https://drupal.org/node/1799294')), WATCHDOG_WARNING);
+      drupal_set_message('Server configuration prevented DPS transaction completion. Please advise site administrator to check Drupal logs for details.', 'error');
+      drupal_goto($settings['commerce_dps_pxpay_cancel_return_url']);
+    }
+    return;
+  }
 
   $tokens->data['payment_details'] = array();
 
