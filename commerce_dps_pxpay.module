@@ -67,6 +67,7 @@ function commerce_dps_pxpay_settings_form($settings = NULL) {
     'commerce_dps_pxpay_currency' => COMMERCE_DPS_PXPAY_CURRENCY,
     'commerce_dps_pxpay_cancel_return_url' => COMMERCE_DPS_PXPAY_CANCEL_RETURN_URL,
     'commerce_dps_pxpay_refprefix' => COMMERCE_DPS_PXPAY_REFPREFIX,
+    'commerce_dps_pxpay_log_transactions' => 0,
   );
 
   $form['commerce_dps_pxpay_userid'] = array(
@@ -91,6 +92,18 @@ function commerce_dps_pxpay_settings_form($settings = NULL) {
     '#value' => $settings['commerce_dps_pxpay_server'],
   );
   
+  $form['commerce_dps_pxpay_log_transactions'] = array(
+    '#type' => 'select',
+    '#title' => t('Record transaction information to Drupal logs.'),
+    '#description' => t('Record communication with DPS server to Drupal logs. For development only.'),
+    '#options' => array(
+      0 => ('Disabled (production)'),
+      1 => ('Enabled (development)'),
+    ),
+    '#default_value' => $settings['commerce_dps_pxpay_log_transactions'],
+    '#required' => TRUE,
+  );
+
   $form['commerce_dps_pxpay_currency'] = array(
     '#type' => 'select',
     '#title' => t('Currency code'),
@@ -98,6 +111,7 @@ function commerce_dps_pxpay_settings_form($settings = NULL) {
     '#options' => commerce_dps_pxpay_currencies(),
     '#default_value' => $settings['commerce_dps_pxpay_currency'],
   );
+
   $form['commerce_dps_pxpay_cancel_return_url'] = array(
     '#type' => 'textfield',
     '#title' => t('Cancel return URL'),
@@ -106,6 +120,7 @@ function commerce_dps_pxpay_settings_form($settings = NULL) {
     '#size' => 32,
     '#field_prefix' => url(NULL, array('absolute' => TRUE)) . (variable_get('clean_url', 0) ? '' : '?q='),
   );
+
   $form['commerce_dps_pxpay_refprefix'] = array(
     '#type' => 'textfield',
     '#title' => t('Merchant Reference Prefix'),
@@ -155,7 +170,7 @@ function commerce_dps_pxpay_order_form($form, &$form_state, $order, $settings) {
     'url_success' => $settings['return'],
     'url_failure' => $settings['cancel_return'],
     'email' => $order->mail,
-    'log' => TRUE,
+    'log' => $settings['commerce_dps_pxpay_log_transactions'],
   );
 
   if ($url = commerce_dps_pxpay_generate_request($transaction)) {
@@ -178,7 +193,7 @@ function commerce_dps_pxpay_redirect_form_validate($order, $payment_method) {
     'user_id' => $settings['commerce_dps_pxpay_userid'],
     'key' => $settings['commerce_dps_pxpay_key'],
     'result' => $_GET['result'],
-    'log' => TRUE,
+    'log' => $settings['commerce_dps_pxpay_log_transactions'],
   );
 
   $tokens->data['payment_details'] = array();
