@@ -84,16 +84,13 @@ function commerce_dps_pxpay_settings_form($settings = NULL) {
     '#default_value' => $settings['commerce_dps_pxpay_key'],
     '#required' => TRUE,
   );
+
   $form['commerce_dps_pxpay_server'] = array(
-    '#type' => 'select',
+    '#type' => 'value',
     '#title' => t('PxPay server'),
-    '#description' => t('Sign up for and use a Sandbox account for testing.'),
-    '#options' => array(
-      'https://sec.paymentexpress.com/pxpay/pxaccess.aspx' => ('Live'),
-    ),
-    '#default_value' => $settings['commerce_dps_pxpay_server'],
-    '#required' => TRUE,
+    '#value' => $settings['commerce_dps_pxpay_server'],
   );
+  
   $form['commerce_dps_pxpay_currency'] = array(
     '#type' => 'select',
     '#title' => t('Currency code'),
