@@ -13,16 +13,16 @@ function commerce_dps_pxpay_generate_request($transaction) {
   $transaction['amount'] = number_format($transaction['amount'], 2, '.', '');
 
   $xml = '<GenerateRequest>';
-  $xml .= '  <PxPayUserId>' . $transaction['user_id'] . '</PxPayUserId>';
-  $xml .= '  <PxPayKey>' . $transaction['key'] . '</PxPayKey>';
-  $xml .= '  <TxnType>' . $transaction['type'] . '</TxnType>';
-  $xml .= '  <CurrencyInput>' . $transaction['currency'] . '</CurrencyInput>';
-  $xml .= '  <AmountInput>' . $transaction['amount'] . '</AmountInput>';
-  $xml .= '  <MerchantReference>' . $transaction['reference'] . '</MerchantReference>';
-  $xml .= '  <EmailAddress>' . $transaction['email'] . '</EmailAddress>';
-  $xml .= '  <TxnId>' . $transaction['txn_id'] . '</TxnId>';
-  $xml .= '  <UrlSuccess>' . $transaction['url_success'] . '</UrlSuccess>';
-  $xml .= '  <UrlFail>' . $transaction['url_failure'] . '</UrlFail>';
+  $xml .= '  <PxPayUserId>' . htmlspecialchars($transaction['user_id']) . '</PxPayUserId>';
+  $xml .= '  <PxPayKey>' . htmlspecialchars($transaction['key']) . '</PxPayKey>';
+  $xml .= '  <TxnType>' . htmlspecialchars($transaction['type']) . '</TxnType>';
+  $xml .= '  <CurrencyInput>' . htmlspecialchars($transaction['currency']) . '</CurrencyInput>';
+  $xml .= '  <AmountInput>' . htmlspecialchars($transaction['amount']) . '</AmountInput>';
+  $xml .= '  <MerchantReference>' . htmlspecialchars($transaction['reference']) . '</MerchantReference>';
+  $xml .= '  <EmailAddress>' . htmlspecialchars($transaction['email']) . '</EmailAddress>';
+  $xml .= '  <TxnId>' . htmlspecialchars($transaction['txn_id']) . '</TxnId>';
+  $xml .= '  <UrlSuccess>' . htmlspecialchars($transaction['url_success']) . '</UrlSuccess>';
+  $xml .= '  <UrlFail>' . htmlspecialchars($transaction['url_failure']) . '</UrlFail>';
   $xml .= '</GenerateRequest>';
 
   if ($transaction['log']) {
