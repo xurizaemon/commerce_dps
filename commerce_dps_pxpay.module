@@ -164,7 +164,7 @@ function commerce_dps_pxpay_order_form($form, &$form_state, $order, $settings) {
     'key' => $settings['commerce_dps_pxpay_key'],
     'amount' => $order->commerce_order_total['und'][0]['amount'] / 100,
     'type' => 'Purchase',
-    'txn_id' => uniqid($order->order_number),
+    'txn_id' => substr(uniqid($order->order_number . '-'), 0, 16),
     'reference' => $settings['commerce_dps_pxpay_refprefix'] . " #" . $order->order_number,
     'currency' => 'NZD',
     'url_success' => $settings['return'],
