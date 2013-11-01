@@ -228,13 +228,13 @@ function commerce_dps_pxpay_redirect_form_validate($order, $payment_method) {
   // Local validation.
   $merchant_reference = $settings['commerce_dps_pxpay_refprefix'] . " #" . $order->order_number;
   if ($merchant_reference != $response['MerchantReference'] || $order->mail != $response['EmailAddress']) {
-    if ($merchant_reference != $payment['MerchantReference']) {
+    if ($merchant_reference != $response['MerchantReference']) {
       $mismatch_info = t('Mismatch: Merchant reference should be %order_ref but was returned as %payment_ref from DPS.',
-                         array('%order_ref' => $merchant_reference, '%payment_ref' => $payment['MerchantReference']));
+                         array('%order_ref' => $merchant_reference, '%payment_ref' => $response['MerchantReference']));
     }
-    if ($order->mail != $payment['EmailAddress']) {
+    if ($order->mail != $response['EmailAddress']) {
       $mismatch_info = t('Mismatch: Email address should be %order_email but was returned as %payment_email from DPS.',
-                         array('%order_email' => $order->mail, '%payment_email' => $payment['EmailAddress']));
+                         array('%order_email' => $order->mail, '%payment_email' => $response['EmailAddress']));
     }
     watchdog('commerce_dps_pxpay',
       'DPS PxPay details for order @cart_order do not match order details! !info',
