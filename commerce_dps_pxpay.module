@@ -157,7 +157,6 @@ function commerce_dps_pxpay_submit_form($payment_method, $pane_values, $checkout
  */
 function commerce_dps_pxpay_order_form($form, &$form_state, $order, $settings) {
   module_load_include('inc', 'commerce_dps_pxpay', 'commerce_dps_pxpay');
-
   $transaction = array(
     'user_id' => $settings['commerce_dps_pxpay_userid'],
     'server' => $settings['commerce_dps_pxpay_server'],
@@ -166,7 +165,7 @@ function commerce_dps_pxpay_order_form($form, &$form_state, $order, $settings) {
     'type' => 'Purchase',
     'txn_id' => substr(uniqid($order->order_number . '-'), 0, 16),
     'reference' => commerce_dps_pxpay_merchant_reference($order, $settings),
-    'currency' => 'NZD',
+    'currency' => $settings['commerce_dps_pxpay_currency'],
     'url_success' => $settings['return'],
     'url_failure' => $settings['cancel_return'],
     'email' => $order->mail,

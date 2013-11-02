@@ -10,7 +10,14 @@
  */
 function commerce_dps_pxpay_generate_request($transaction) {
   // Ensure amount is dd.cc
-  $transaction['amount'] = number_format($transaction['amount'], 2, '.', '');
+  switch ($transaction['currency']) {
+    case 'JPY':
+      $transaction['amount'] = number_format($transaction['amount'], 0, '', '');
+      break;
+    default:
+      $transaction['amount'] = number_format($transaction['amount'], 2, '.', '');
+      break;
+  }
 
   $xml = '<GenerateRequest>';
   $xml .= '  <PxPayUserId>' . htmlspecialchars($transaction['user_id']) . '</PxPayUserId>';
