@@ -47,7 +47,7 @@ function commerce_dps_pxpay_generate_request($transaction) {
       array(
         '@reference' => $transaction['reference'],
         '@code' => $response->code,
-        '@xml' => $response->data,
+        '@xml' => isset($response->data) ? $response->data : '',
       ),
       WATCHDOG_DEBUG
     );
@@ -66,7 +66,7 @@ function commerce_dps_pxpay_generate_request($transaction) {
             'GenerateRequest invalid: @reference, XML: @xml',
             array(
               '@reference' => $transaction['reference'],
-              '@xml' => $response->data,
+              '@xml' => isset($response->data) ? $response->data : '',
             ),
             WATCHDOG_ERROR
           );
@@ -74,13 +74,14 @@ function commerce_dps_pxpay_generate_request($transaction) {
       }
     }
   }
+  drupal_set_message('Unable to communicate with DPS. Please advise the site administrator.', 'error'); 
   watchdog(
     'commerce_dps_pxpay',
     'GenerateRequest: @reference, HTTP @code, XML: @xml',
     array(
-      '@reference' => $reference,
+      '@reference' => $transaction['reference'],
       '@code' => $response->code,
-      '@xml' => $response->data,
+      '@xml' => isset($response->data) ? $response->data : '',
     ),
     WATCHDOG_ERROR
   );
