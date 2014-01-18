@@ -27,6 +27,29 @@ CONFIGURING PAYMENT METHOD - PxPay
 
 3. Edit the Commerce Payment Express (PxPay) method and configure accordingly.
 
+TROUBLESHOOTING
+---------------
+
+For any questions, the first point of reference should be the issue
+queue on Drupal.org. Please use the search interface provided to see
+if your problem has been fixed or is currently being worked on, and if
+not create a new issue to discuss it.
+
+Always check your site error logs (both webserver and Drupal logs) and
+give detail when making a report.
+
+Documentation fixes are welcome!
+
+FAQ
+---
+
+Q: I get mysterious validation errors!
+
+A: If your Drupal logs direct you to issue #1799294, you may be
+   running into issues with Suhosin's default configuration preventing
+   the DPS response being recognised by Drupal. This requires some
+   webserver configuration to resolve.
+
 CREDITS
 -------
 
