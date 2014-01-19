@@ -157,14 +157,19 @@ function commerce_dps_pxpay_submit_form($payment_method, $pane_values, $checkout
  */
 function commerce_dps_pxpay_order_form($form, &$form_state, $order, $settings) {
   module_load_include('inc', 'commerce_dps_pxpay', 'commerce_dps_pxpay');
+  $wrapper = entity_metadata_wrapper('commerce_order', $order);
+  $currency_code = $wrapper->commerce_order_total->currency_code->value();
+  $amount = $wrapper->commerce_order_total->amount->value();
+  $amount = commerce_currency_amount_to_decimal($amount, $currency_code);
   $transaction = array(
     'user_id' => $settings['commerce_dps_pxpay_userid'],
     'server' => $settings['commerce_dps_pxpay_server'],
     'key' => $settings['commerce_dps_pxpay_key'],
-    'amount' => $order->commerce_order_total['und'][0]['amount'] / 100,
+    'amount' => $amount,
     'type' => 'Purchase',
     'txn_id' => substr(uniqid($order->order_number . '-'), 0, 16),
     'reference' => commerce_dps_pxpay_merchant_reference($order, $settings),
+    // Could automatically switch using $currency_code here.
     'currency' => $settings['commerce_dps_pxpay_currency'],
     'url_success' => $settings['return'],
     'url_failure' => $settings['cancel_return'],
