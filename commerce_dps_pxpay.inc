@@ -74,7 +74,6 @@ function commerce_dps_pxpay_generate_request($transaction) {
       }
     }
   }
-  drupal_set_message('Unable to communicate with DPS. Please advise the site administrator.', 'error'); 
   watchdog(
     'commerce_dps_pxpay',
     'GenerateRequest: @reference, HTTP @code, XML: @xml',
@@ -108,7 +107,7 @@ function commerce_dps_pxpay_process_response($transaction) {
   $response = drupal_http_request($url, array('method' => 'POST', 'data' => $xml));
 
   if ($transaction['log']) {
-    watchdog('commerce_dps_pxpay', 'ProcessResponse response: HTTP @code, @xml', array('@code' => $response->code, '@xml' => $response->data), WATCHDOG_DEBUG);
+    watchdog('commerce_dps_pxpay', 'ProcessResponse response: HTTP @code, <pre>@xml</pre>', array('@code' => $response->code, '@xml' => $response->data), WATCHDOG_DEBUG);
   }
 
   // If response XML from PX Pay is good, extract and return transaction data.
@@ -158,4 +157,77 @@ function commerce_dps_pxpay_currencies() {
     'USD' => 'United States Dollar',
     'VUV' => 'Vanuatu Vatu',
   );
+}
+
+
+/**
+ * Create a transaction and associate it with an order.
+ *
+ * @param  object $order   The order object being processed
+ * @param  array  $payment Payment details from DPS
+ * @param  string $status  The payment status to use for the transaction
+ *
+ * @return void
+ */
+function commerce_dps_pxpay_order_transaction($order, $payment, $status){
+  // Create a new payment transaction for the order.
+  $transaction = commerce_payment_transaction_new('commerce_dps_pxpay', $order->order_id);
+  $transaction->instance_id = 'dps_pxpay';
+  $transaction->remote_id = $payment['TxnId'];
+  $transaction->amount = commerce_currency_decimal_to_amount($payment['AmountSettlement'], $payment['CurrencyInput']);
+  $transaction->currency_code = $payment['CurrencyInput'];
+  $transaction->payload[REQUEST_TIME] = $payment;
+
+  // Set the transaction's statuses based on the payment_status.
+  $transaction->remote_status = $payment['ResponseText'];
+  $transaction->status = $status;
+  $transaction->message = 'Status @status, @statusdetail. Email: @email. Auth Code=@authcode.';
+
+  $transaction->message_variables = array(
+    '@status' => $payment['Success'],
+    '@statusdetail' => $payment['ResponseText'],
+    '@email' => $payment['EmailAddress'],
+    '@authcode' => $payment['AuthCode'],
+  );
+
+  // Save the transaction information.
+  commerce_payment_transaction_save($transaction);
+}
+
+/**
+ * Get all the transaction remote ids for a given order number.
+ *
+ * @param int $order_id Unique id of Commerce Order.
+ *
+ * @return array Remote IDs.
+ */
+function commerce_dps_pxpay_get_remote_ids($order_id){
+  $transaction_ids = commerce_dps_pxpay_get_transaction_ids($order_id);
+  $transactions = commerce_payment_transaction_load_multiple($transaction_ids);
+  $remote_ids = array();
+  foreach ($transactions as $transaction) {
+    $remote_ids[] = $transaction->remote_id;
+  }
+  return $remote_ids;
+}
+
+/**
+ * Get all the transaction ids for a given order number.
+ *
+ * @param  int $order_id The order id the check against
+ *
+ * @return array This array contains all the transaction ids for the order
+ */
+function commerce_dps_pxpay_get_transaction_ids($order_id){
+  $query = new EntityFieldQuery();
+  $query->entityCondition('entity_type', 'commerce_payment_transaction')
+    ->propertyCondition('order_id', $order_id, '=');
+  $transactions = $query->execute();
+  $transaction_ids = array();
+  if (array_key_exists('commerce_payment_transaction', $transactions)){
+    foreach ($transactions['commerce_payment_transaction'] as $transaction) {
+      $transaction_ids[] = $transaction->transaction_id;
+    }
+  }
+  return $transaction_ids;
 }

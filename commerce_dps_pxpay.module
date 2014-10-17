@@ -12,6 +12,22 @@ define('COMMERCE_DPS_PXPAY_CURRENCY', 'NZD');
 define('COMMERCE_DPS_PXPAY_CANCEL_RETURN_URL', 'cart');
 define('COMMERCE_DPS_PXPAY_REFPREFIX', 'Website Order');
 
+ /**
+ * Implements hook_menu().
+ */
+function commerce_dps_pxpay_menu() {
+  // Define an always-accessible path to receive FPRN (Fail-proof
+  // Result Notification).
+  $items['checkout/%commerce_order/dps_pxpay_fprn'] = array(
+    'page callback' => 'commerce_dps_pxpay_process_fprn',
+    'page arguments' => array(1),
+    'access callback' => TRUE,
+    'type' => MENU_CALLBACK,
+  );
+
+  return $items;
+}
+
 /**
  * Implements hook_commerce_payment_method_info().
  */
@@ -45,7 +61,7 @@ function commerce_dps_pxpay_redirect_form($form, &$form_state, $order, $payment_
     // Return to the previous page when payment is canceled.
     'cancel_return' => url('checkout/' . $order->order_id . '/payment/back/' . $order->data['payment_redirect_key'], array('absolute' => TRUE)),
     // Return to the payment redirect page for processing successful payments.
-    'return' => url('checkout/' . $order->order_id . '/payment/return/' . $order->data['payment_redirect_key'], array('absolute' => TRUE)),
+    'return' => url('checkout/' . $order->order_id . '/dps_pxpay_fprn/' . $order->data['payment_redirect_key'], array('absolute' => TRUE)),
     // Specify the current payment method instance ID in the notify_url.
     'payment_method' => $payment_method['instance_id'],
   );
@@ -157,10 +173,12 @@ function commerce_dps_pxpay_submit_form($payment_method, $pane_values, $checkout
  */
 function commerce_dps_pxpay_order_form($form, &$form_state, $order, $settings) {
   module_load_include('inc', 'commerce_dps_pxpay', 'commerce_dps_pxpay');
+
   $wrapper = entity_metadata_wrapper('commerce_order', $order);
-  $currency_code = $wrapper->commerce_order_total->currency_code->value();
   $amount = $wrapper->commerce_order_total->amount->value();
+  $currency_code = $wrapper->commerce_order_total->currency_code->value();
   $amount = commerce_currency_amount_to_decimal($amount, $currency_code);
+
   $transaction = array(
     'user_id' => $settings['commerce_dps_pxpay_userid'],
     'server' => $settings['commerce_dps_pxpay_server'],
@@ -168,11 +186,10 @@ function commerce_dps_pxpay_order_form($form, &$form_state, $order, $settings) {
     'amount' => $amount,
     'type' => 'Purchase',
     'txn_id' => substr(uniqid($order->order_number . '-'), 0, 16),
-    'reference' => commerce_dps_pxpay_merchant_reference($order, $settings),
-    // Could automatically switch using $currency_code here.
+    'reference' => $settings['commerce_dps_pxpay_refprefix'] . " #" . $order->order_number,
     'currency' => $settings['commerce_dps_pxpay_currency'],
     'url_success' => $settings['return'],
-    'url_failure' => $settings['cancel_return'],
+    'url_failure' => $settings['return'],
     'email' => $order->mail,
     'log' => $settings['commerce_dps_pxpay_log_transactions'],
   );
@@ -186,118 +203,118 @@ function commerce_dps_pxpay_order_form($form, &$form_state, $order, $settings) {
 }
 
 /**
- * Implements hook_redirect_form_validate().
+ * Processes an normal payment or FPRN.
+ *
+ * @return void
  */
-function commerce_dps_pxpay_redirect_form_validate($order, $payment_method) {
+function commerce_dps_pxpay_process_fprn($order) {
+  // Exclude "PXL1" (DPS FPRN) from creating user accounts.
+/*
+  $user_email_verification = variable_get('user_email_verification');
+  watchdog('commerce_dps_pxpay', $_SERVER['HTTP_USER_AGENT']);
+  if (isset($_SERVER['HTTP_USER_AGENT']) && $_SERVER['HTTP_USER_AGENT'] == 'PXL1') {
+    if ($user_email_verification) {
+      variable_set('user_email_verification', TRUE);
+    }
+  }
+*/
   module_load_include('inc', 'commerce_dps_pxpay', 'commerce_dps_pxpay');
-  $settings = $payment_method['settings'];
+
+  if(!$order) {
+    return drupal_not_found();
+  }
+
+  $payment_method = $order->data['payment_method'];
+  $payment_data = commerce_payment_method_instance_load($payment_method);
 
   $transaction = array(
-    'server' => $settings['commerce_dps_pxpay_server'],
-    'user_id' => $settings['commerce_dps_pxpay_userid'],
-    'key' => $settings['commerce_dps_pxpay_key'],
-    'log' => $settings['commerce_dps_pxpay_log_transactions'],
+    'server' => COMMERCE_DPS_PXPAY_SERVER,
+    'user_id' => $payment_data['settings']['commerce_dps_pxpay_userid'],
+    'key' => $payment_data['settings']['commerce_dps_pxpay_key'],
+    'log' => $payment_data['settings']['commerce_dps_pxpay_log_transactions'],
   );
+
+  // Make sure result is set from DPS
   if (isset($_GET['result'])) {
     $transaction['result'] = $_GET['result'];
   }
   else {
     watchdog('commerce_dps_pxpay', 'Transaction result data not found.', array(), WATCHDOG_ERROR);
     if (preg_match('/(\?|\&)result=/', $_SERVER['REQUEST_URI'])) {
-      watchdog('commerce_dps_pxpay', 'Please see !link for how to configure your webserver to accept DPS return requests.', array('!link' => l('drupal.org #1799294', 'https://drupal.org/node/1799294')), WATCHDOG_WARNING);
+
+      watchdog(
+        'commerce_dps_pxpay',
+        'Please see !link for how to configure your webserver to accept DPS return requests.',
+        array('!link' => l('drupal.org #1799294', 'https://drupal.org/node/1799294')),
+        WATCHDOG_WARNING
+      );
+
       drupal_set_message('Server configuration prevented DPS transaction completion. Please advise site administrator to check Drupal logs for details.', 'error');
-      drupal_goto($settings['commerce_dps_pxpay_cancel_return_url']);
     }
-    return;
+    drupal_goto($payment_data['settings']['commerce_dps_pxpay_cancel_return_url']);
   }
 
-  $tokens->data['payment_details'] = array();
-
+  // Get DPS payment information
   $response = commerce_dps_pxpay_process_response($transaction);
+  // Proccess the order payment. This calls drupal_goto() so will die.
+  commerce_dps_pxpay_fprn_process($order, $response, $payment_data['settings']);
+}
 
-  // DPS validation.
-  if ($response['Success'] != "1") {
-    // Not a success.
-    commerce_dps_pxpay_form_transaction($payment_method, $order, $tokens, COMMERCE_PAYMENT_STATUS_FAILURE);
-    watchdog('commerce_dps_pxpay', 'DPS PxPay transaction failed validation. Cart order ID: @cart_order', array('@cart_order' => $order->order->order_number), WATCHDOG_NOTICE);
-
-    drupal_set_message(t('The transaction failed validation. Please contact us for assistance. Reference Order Id: @orderid', array('@orderid' => $order->order_number)));
+/**
+ * Payment method callback: process an payment once it's been validated.
+ *
+ * @param  object $order    The order object being processed
+ * @param  array  $payment  Payment details from DPS
+ * @param  string $settings User defined settings
+ *
+ * @return void
+ */
+function commerce_dps_pxpay_fprn_process($order, &$payment, $settings) {
+  // Do not perform any processing on transactions here that do not have a transaction ID.
+  if (empty($payment['TxnId'])) {
     drupal_goto($settings['commerce_dps_pxpay_cancel_return_url']);
   }
 
-  foreach ($response as $k => $v) {
-    $tokens->data['payment_details']['pxpay_' . $k] = $v;
+  // Exit when we don't get a payment status we recognize.
+  if (!$payment['Success']) {
+    // Only add the transaction if we do not have the TxnId stored.
+    $remote_ids = commerce_dps_pxpay_get_remote_ids($order->order_id);
+    if (!in_array($payment['TxnId'], $remote_ids)) {
+      // Write transaction information if payment failed.
+      commerce_dps_pxpay_order_transaction($order, $payment, COMMERCE_PAYMENT_STATUS_FAILURE);
+      watchdog('commerce_dps_pxpay', 'DPS PxPay transaction failed validation. Cart order ID: @cart_order', array('@cart_order' => $order->order->order_number), WATCHDOG_NOTICE);
+      drupal_set_message(t('The transaction failed validation. Please contact us for assistance. Reference Order Id: @orderid', array('@orderid' => $order->order_number)));
+    }
+    drupal_goto($settings['commerce_dps_pxpay_cancel_return_url']);
   }
 
   // Local validation.
-  $merchant_reference = commerce_dps_pxpay_merchant_reference($order, $settings);
-  if ($merchant_reference != $response['MerchantReference']) {
-    if ($merchant_reference != $response['MerchantReference']) {
-      $mismatch_info = t('Mismatch: Merchant reference should be %order_ref but was returned as %payment_ref from DPS.',
-                         array('%order_ref' => $merchant_reference, '%payment_ref' => $response['MerchantReference']));
-    }
-    watchdog('commerce_dps_pxpay',
-      'DPS PxPay details for order @cart_order do not match order details! !info',
-      array('@cart_order' => $order->order_number, '!info' => $mismatch_info),
-      WATCHDOG_NOTICE,
-      l('Order #' . $order->order_number, 'admin/commerce/orders/' . $order->order_number));
-    // watchdog('commerce_dps_pxpay', '<pre>!response</pre>', array('!response' => print_r($response,1)), WATCHDOG_DEBUG);
-    drupal_set_message(
-      t('The details of your DPS PxPay payment do not match your order. Please contact us for assistance. Reference Order Id: @orderid',
-        array('@orderid' => $order->order_number)), 'error');
+  $merchant_reference = $settings['commerce_dps_pxpay_refprefix'] . " #" . $order->order_number;
 
-    commerce_dps_pxpay_form_transaction($payment_method, $order, $tokens, COMMERCE_PAYMENT_STATUS_FAILURE);
+  $payment_mail = $payment['EmailAddress'];
+
+  if ($merchant_reference != $payment['MerchantReference'] || $order->mail != $payment_mail) {
+    watchdog('commerce_dps_pxpay', 'DPS PxPay details do not match order details! Cart order ID: @cart_order', array('@cart_order' => $order->order_number), WATCHDOG_NOTICE);
+    drupal_set_message(
+      t('The details of your DPS PxPay payment do not match your order. Please contact us for assistance. Reference Order Id: @orderid', array('@orderid' => $order->order_number))
+    );
+    // Write transaction information if payment details do not match order.
+    commerce_dps_pxpay_order_transaction($order, $payment, COMMERCE_PAYMENT_STATUS_FAILURE);
     drupal_goto($settings['commerce_dps_pxpay_cancel_return_url']);
   }
 
-  watchdog('commerce_dps_pxpay', 'DPS PxPay transaction succeeded. Cart order ID: @cart_order', array('@cart_order' => $order->order_number), WATCHDOG_NOTICE);
-  drupal_set_message(t('Transaction succeeded. Reference Order Id: @orderid', array('@orderid' => $order->order_number)));
-  // Success.
-  commerce_dps_pxpay_form_transaction($payment_method, $order, $tokens, COMMERCE_PAYMENT_STATUS_SUCCESS);
-  return TRUE;
-}
+  $remote_ids = commerce_dps_pxpay_get_remote_ids($order->order_id);
 
-/**
- * Create a transaction and associate it with an order.
- *
- * Set a status for the payment - one of COMMERCE_PAYMENT_STATUS_SUCCESS,
- * COMMERCE_PAYMENT_STATUS_PENDING, or COMMERCE_PAYMENT_STATUS_FAILURE.
- *
- * @TODO move to .inc ?
- */
-function commerce_dps_pxpay_form_transaction($payment_method, $order, $tokens, $transaction_status) {
-  $settings = $payment_method['settings'];
-
-  $transaction = commerce_payment_transaction_new('commerce_dps_pxpay', $order->order_id);
-  $transaction->instance_id = $payment_method['instance_id'];
-  $transaction->amount = $tokens->data['payment_details']['pxpay_AmountSettlement'] * 100;
-  $transaction->currency_code = $settings['commerce_dps_pxpay_currency'];
-  $transaction->remote_id = $tokens->data['payment_details']['pxpay_DpsTxnRef'];
-
-  $transaction->status = $transaction_status;
-  $transaction->message = 'Status @status, @statusdetail. Email: @email. Auth Code=@authcode.';
-  $transaction->message_variables = array(
-    '@status' => $tokens->data['payment_details']['pxpay_Success'],
-    '@statusdetail' => $tokens->data['payment_details']['pxpay_ResponseText'],
-    '@email' => $tokens->data['payment_details']['pxpay_EmailAddress'],
-    '@authcode' => $tokens->data['payment_details']['pxpay_AuthCode'],
-  );
-
-  commerce_payment_transaction_save($transaction);
-}
-
-/**
- * Generates a DPS merchant reference.
- *
- * @param object $order Commerce order.
- * @param array $settings commerce_dps configuration settings.
- * @return string $data Transaction data.
- */
-function commerce_dps_pxpay_merchant_reference($order, $settings) {
-  $reference = $settings['commerce_dps_pxpay_refprefix'] . " #" . $order->order_number;
-
-  // Allow other modules to alter the transaction data before sending it to DPS.
-  drupal_alter('commerce_dps_pxpay_merchant_reference', $reference, $order, $settings);
-
-  return $reference;
+  // Only add the transaction if we do not have the TxnId stored.
+  if (!in_array($payment['TxnId'], $remote_ids)) {
+    watchdog('commerce_dps_pxpay', 'DPS PxPay transaction succeeded. Cart order ID: @cart_order', array('@cart_order' => $order->order_number), WATCHDOG_NOTICE);
+    drupal_set_message(t('Transaction succeeded. Reference Order Id: @orderid', array('@orderid' => $order->order_number)));
+    // Write transaction information when payment was successful.
+    commerce_dps_pxpay_order_transaction($order, $payment, COMMERCE_PAYMENT_STATUS_SUCCESS);
+  }
+  // Save to completed orders in session so it's viewable. Here to let
+  // user view order after FPRN has occurred.
+  commerce_cart_order_session_save($order->order_id, TRUE);
+  commerce_payment_redirect_pane_next_page($order);
+  drupal_goto(commerce_checkout_order_uri($order));
 }
