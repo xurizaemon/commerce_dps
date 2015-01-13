@@ -10,7 +10,7 @@ define('COMMERCE_DPS_PXPOST_PASSWORD', '');
 define('COMMERCE_DPS_PXPOST_SERVER', 'https://sec.paymentexpress.com/pxpost.aspx');
 define('COMMERCE_DPS_PXPOST_CURRENCY', 'NZD');
 define('COMMERCE_DPS_PXPOST_CANCEL_RETURN_URL', 'cart');
-define('COMMERCE_DPS_PXPOST_REFPREFIX', 'Website Order');
+define('COMMERCE_DPS_PXPOST_REFERENCE_PREFIX', 'Website Order');
 
 /**
  * Implements hook_menu().
@@ -95,7 +95,7 @@ function commerce_dps_pxpost_default_settings() {
     'server' => COMMERCE_DPS_PXPOST_SERVER,
     'currency' => COMMERCE_DPS_PXPOST_CURRENCY,
     'cancel_return_url' => COMMERCE_DPS_PXPOST_CANCEL_RETURN_URL,
-    'refprefix' => COMMERCE_DPS_PXPOST_REFPREFIX,
+    'reference_prefix' => COMMERCE_DPS_PXPOST_REFERENCE_PREFIX,
     'txn_type' => COMMERCE_CREDIT_AUTH_CAPTURE,
     'log_transactions' => 0,
     'cardonfile' => FALSE,
@@ -174,11 +174,11 @@ function commerce_dps_pxpost_settings_form($settings = NULL) {
     '#field_prefix' => url(NULL, array('absolute' => TRUE)) . (variable_get('clean_url', 0) ? '' : '?q='),
   );
 
-  $form['refprefix'] = array(
+  $form['reference_prefix'] = array(
     '#type' => 'textfield',
     '#title' => t('Merchant Reference Prefix'),
     '#description' => t('Added before order number sent to DPS, ie Website Order #1234'),
-    '#default_value' => $settings['refprefix'],
+    '#default_value' => $settings['reference_prefix'],
     '#required' => TRUE,
   );
 
@@ -272,9 +272,9 @@ function commerce_dps_pxpost_submit_form_validate($payment_method, $pane_form, $
  */
 function commerce_dps_pxpost_submit_form_submit($payment_method, $pane_form, $pane_values, $order, $charge) {
   module_load_include('inc', 'commerce_dps_pxpost', 'commerce_dps');
-  watchdog('commerce_dps_pxpost', 'commerce_dps_pxpost_submit_form_submit');
-  // If the customer specified payment using a card on file, attempt that now
-  // and simply return the result.
+
+  // @TODO: If the customer specified payment using a card on file,
+  // attempt that now and simply return the result.
   if (module_exists('commerce_cardonfile') && $payment_method['settings']['cardonfile'] &&
     !empty($pane_values['cardonfile']) && $pane_values['cardonfile'] !== 'new') {
     return commerce_dps_pxpost_submit_form_submit_cardonfile($payment_method, $pane_form, $pane_values, $order, $charge);
@@ -324,70 +324,24 @@ function commerce_dps_pxpost_submit_form_submit($payment_method, $pane_form, $pa
     $txn_type = $pane_values['txn_type'];
   }
 
-  if ($payment_method['settings']['log_transactions']) {
-    watchdog('commerce_dps_pxpost', 'Debug: <pre>!debug</pre>', array(
-        '!debug' => print_r(array(
-                  'payment_method_settings' => $payment_method['settings'],
-                  'pane_values' => $pane_values,
-                ),1)), WATCHDOG_DEBUG);
+  // If we have a customer billing profile, load it to get the
+  // CardHolderName. Or we could add an additional field to request
+  // it.
+  $cardholder_name = '';
+/*
+  if (module_exists('commerce_customer')) {
+    $field_name = variable_get('commerce_customer_profile_billing_field', '');
+    if (isset($order_wrapper->{$field_name}->commerce_customer_address->name_line)) {
+      $cardholder_name = $order_wrapper->{$field_name}->commerce_customer_address->name_line->value();
+    }
   }
-
-  $writer = new XMLWriter();
-  $writer->openMemory();
-  $writer->startElement('Txn');
-  $writer->writeElement('PostUsername', $payment_method['settings']['username']);
-  $writer->writeElement('PostPassword', $payment_method['settings']['password']);
-  $writer->writeElement('Amount', number_format($charge['amount'], 2, '.', ''));
-  $writer->writeElement('TxnType', commerce_dps_txn_type($txn_type));
-  switch ($txn_type) {
-    case COMMERCE_CREDIT_AUTH_CAPTURE:
-    case COMMERCE_CREDIT_AUTH_ONLY:
-      $writer->writeElement('InputCurrency', $charge['currency_code']);
-      $writer->writeElement('CardHolderName', $pane_values['billing']['number']);
-      $writer->writeElement('CardNumber', $pane_values['credit_card']['number']);
-      $writer->writeElement('DateExpiry', $pane_values['credit_card']['exp_month'] . substr($pane_values['credit_card']['exp_year'], 2, 4));
-      if (isset($pane_values['credit_card']['code'])) {
-        $writer->writeElement('Cvc2', $pane_values['credit_card']['code']);
-      }
-      $writer->writeElement('MerchantReference', '@TODO');
-      break;
-
-    case COMMERCE_CREDIT_CREDIT:
-      $writer->writeElement('DpsTxnRef', '@TODO Transaction ID for refund.');
-      break;
-
-//    case COMMERCE_CREDIT_PRIOR_AUTH_CAPTURE:
-//      $writer->writeElement('DpsTxnRef', '@TODO Transaction ID for complete.');
-
-    default:
-      drupal_set_message('Invalid transaction type.', 'error');
-
-  }
-  $writer->endElement();
-  $xml = $writer->outputMemory();
-  if ($payment_method['settings']['log_transactions']) {
-    watchdog('commerce_dps_pxpost', 'PxPost XML submission: <pre>@xml</pre>', array('@xml' => $xml), WATCHDOG_DEBUG);
-  }
-
-  $result = drupal_http_request($payment_method['settings']['server'], array('headers' => array('Content-type' =>  'application/xml'), 'method' => 'POST', 'data' => $xml));
-
-  if ($payment_method['settings']['log_transactions']) {
-    watchdog('commerce_dps_pxpost', 'PxPost result (@code) from @server: <pre>@data</pre>', array('@code' => trim($result->code . ' ' . $result->status), '@data' => $result->data, '@server' => $payment_method['settings']['server']), WATCHDOG_DEBUG);
-  }
-  return;
-
-  // Build a name-value pair array for this transaction.
-  $nvp = array(
-    'TxnType' => commerce_dps_txn_type($txn_type),
-    'x_method' => 'CC',
-    'x_amount' => number_format(commerce_currency_amount_to_decimal($charge['amount'], $charge['currency_code']), 2, '.', ''),
-    'x_currency_code' => $charge['currency_code'],
-    'x_card_num' => $pane_values['credit_card']['number'],
-    'x_exp_date' => $pane_values['credit_card']['exp_month'] . $pane_values['credit_card']['exp_year'],
-  );
-
-  if (isset($pane_values['credit_card']['code'])) {
-    $nvp['x_card_code'] = $pane_values['credit_card']['code'];
+*/
+  // Prepare the billing address for use in the request.
+  if ($order_wrapper->commerce_customer_billing->value()){
+    $billing_address = $order_wrapper->commerce_customer_billing->commerce_customer_address->value();
+    if (!empty($billing_address['name_line'])) {
+      $cardholder_name = $billing_address['name_line'];
+    }
   }
 
   // Build a description for the order.
@@ -400,104 +354,152 @@ function commerce_dps_pxpost_submit_form_submit($payment_method, $pane_form, $pa
       }
     }
   }
+  $description = substr(implode(', ', $description), 0, 255);
 
-  // Add additional transaction invormation to the request array.
-  $nvp += array(
-    // Order Information
-    'x_invoice_num' => $order->order_number,
-    'x_description' => substr(implode(', ', $description), 0, 255),
+  if ($payment_method['settings']['log_transactions']) {
+    watchdog('commerce_dps_pxpost', 'Debug: <pre>!debug</pre>', array(
+        '!debug' => print_r(array(
+                  'payment_method' => $payment_method,
+                  'pane_values' => $pane_values,
+                  'order' => $order,
+                  'charge' => $charge,
+                ),1)), WATCHDOG_DEBUG);
+  }
 
-    // Customer Information
-    'x_email' => substr($order->mail, 0, 255),
-    'x_cust_id' => substr($order->uid, 0, 20),
-    'x_customer_ip' => substr(ip_address(), 0, 15),
+  // @TODO Rewrite using SimpleXML just because.
+  $txn = new SimpleXMLElement('<Txn></Txn>');
+  $txn->addChild('PostUsername', $payment_method['settings']['username']);
+  $txn->addChild('PostPassword', $payment_method['settings']['password']);
+  $txn->addChild('Amount', commerce_dps_currency_format($charge['amount'], $charge['currency_code']));
+  $txn->addChild('TxnType', commerce_dps_txn_type($txn_type));
+  switch ($txn_type) {
+    case COMMERCE_CREDIT_AUTH_CAPTURE:
+    case COMMERCE_CREDIT_AUTH_ONLY:
+      $txn->addChild('InputCurrency', $charge['currency_code']);
+      if (!empty($cardholder_name)) {
+        $txn->addChild('CardHolderName', $cardholder_name);
+      }
+      $txn->addChild('CardNumber', $pane_values['credit_card']['number']);
+      $txn->addChild('DateExpiry', $pane_values['credit_card']['exp_month'] . substr($pane_values['credit_card']['exp_year'], 2, 4));
+      if (isset($pane_values['credit_card']['code'])) {
+        $txn->addChild('Cvc2', $pane_values['credit_card']['code']);
+      }
+      if (isset($order->merchant_reference)) {
+        $txn->addChild('MerchantReference', $order->merchant_reference);
+      }
+      else {
+        $txn->addChild('MerchantReference', t('@prefix @order_number', array('@prefix' => $payment_method['settings']['reference_prefix'], '@order_number' => $order->order_number)));
+      }
+      if (!empty($order->mail)) {
+        $txn->addChild('TxnData1', $order->mail);
+      }
+      if (!empty($description)) {
+        $txn->addChild('TxnData2', $description);
+      }
+      break;
+
+    case COMMERCE_CREDIT_CREDIT:
+      $txn->addChild('DpsTxnRef', '@TODO Transaction ID for refund.');
+      break;
+
+//    case COMMERCE_CREDIT_PRIOR_AUTH_CAPTURE:
+//      $txn->addChild('DpsTxnRef', '@TODO Transaction ID for complete.');
+
+    default:
+      drupal_set_message('Invalid transaction type.', 'error');
+
+  }
+  $xml = $txn->asXML();
+
+  if ($payment_method['settings']['log_transactions']) {
+    watchdog('commerce_dps_pxpost', 'PxPost XML submission: <pre>@xml</pre>', array('@xml' => $xml), WATCHDOG_DEBUG);
+  }
+
+  $options = array(
+    'method' => 'POST',
+    'data' => $xml,
+    'headers' => array(
+      'Content-type' =>  'application/xml',
+      'User-Agent' => 'Drupal Commerce DPS PX Post (+https://drupal.org/project/commerce_dps)'
+    ),
   );
+  $result = drupal_http_request($payment_method['settings']['server'], $options);
 
-  // Prepare the billing address for use in the request.
-  if ($order_wrapper->commerce_customer_billing->value()){
-    $billing_address = $order_wrapper->commerce_customer_billing->commerce_customer_address->value();
+  if ($payment_method['settings']['log_transactions']) {
+    watchdog('commerce_dps_pxpost', 'PxPost result (@code) from @server: <pre>@data</pre>', array('@code' => trim($result->code . ' ' . $result->status_message), '@data' => $result->data, '@server' => $payment_method['settings']['server']), WATCHDOG_DEBUG);
 
-    if (empty($billing_address['first_name'])) {
-      $name_parts = explode(' ', $billing_address['name_line']);
-      $billing_address['first_name'] = array_shift($name_parts);
-      $billing_address['last_name'] = implode(' ', $name_parts);
-    }
-
-    $nvp += array(
-      // Customer Billing Address
-      'x_first_name' => substr($billing_address['first_name'], 0, 50),
-      'x_last_name' => substr($billing_address['last_name'], 0, 50),
-      'x_company' => substr($billing_address['organisation_name'], 0, 50),
-      'x_address' => substr($billing_address['thoroughfare'], 0, 60),
-      'x_city' => substr($billing_address['locality'], 0, 40),
-      'x_state' => substr($billing_address['administrative_area'], 0, 40),
-      'x_zip' => substr($billing_address['postal_code'], 0, 20),
-      'x_country' => $billing_address['country'],
-    );
   }
-  else {
-    $billing_address = array();
-  }
-
-  // Submit the request to Authorize.Net.
-  $response = commerce_authnet_aim_request($payment_method, $nvp);
 
   // Prepare a transaction object to log the API response.
-  $transaction = commerce_payment_transaction_new('authnet_aim', $order->order_id);
+  $transaction = commerce_payment_transaction_new('dps_pxpost', $order->order_id);
   $transaction->instance_id = $payment_method['instance_id'];
-  $transaction->remote_id = $response[6];
   $transaction->amount = $charge['amount'];
   $transaction->currency_code = $charge['currency_code'];
-  $transaction->payload[REQUEST_TIME] = $response;
+  $transaction->payload[REQUEST_TIME] = $result->data;
 
-  // If we didn't get an approval response code...
-  if ($response[0] != '1') {
-    // Create a failed transaction with the error message.
-    $transaction->status = COMMERCE_PAYMENT_STATUS_FAILURE;
-  }
-  else {
-    // Set the transaction status based on the type of transaction this was.
-    switch ($txn_type) {
-      case COMMERCE_CREDIT_AUTH_ONLY:
-        $transaction->status = COMMERCE_PAYMENT_STATUS_PENDING;
-        break;
+  if ($result->code == 200) {
+    if ($xml = simplexml_load_string($result->data)) {
+      $success = "{$xml->Success}";
+      watchdog('commerce_dps_pxpost', 'XML: <pre>@data</pre>', array('@data' => htmlspecialchars(print_r($xml,1))), WATCHDOG_DEBUG);
+      $transaction->remote_id = (string)$xml->DpsTxnRef;
 
-      case COMMERCE_CREDIT_AUTH_CAPTURE:
-        $transaction->status = COMMERCE_PAYMENT_STATUS_SUCCESS;
-        break;
+      // If we didn't get an approval response code...
+      if ($success != '1') {
+        // Create a failed transaction with the error message.
+        $transaction->status = COMMERCE_PAYMENT_STATUS_FAILURE;
+      }
+      else {
+        // Set the transaction status based on the type of transaction this was.
+        switch ($txn_type) {
+          case COMMERCE_CREDIT_AUTH_ONLY:
+            $transaction->status = COMMERCE_PAYMENT_STATUS_PENDING;
+            break;
 
-      case COMMERCE_CREDIT_CAPTURE_ONLY:
-        $transaction->status = COMMERCE_PAYMENT_STATUS_SUCCESS;
-        break;
+          case COMMERCE_CREDIT_AUTH_CAPTURE:
+            $transaction->status = COMMERCE_PAYMENT_STATUS_SUCCESS;
+            break;
+
+          case COMMERCE_CREDIT_CAPTURE_ONLY:
+            $transaction->status = COMMERCE_PAYMENT_STATUS_SUCCESS;
+            break;
+
+          default:
+            watchdog('commerce_dps_pxpost', 'Status: @status', array('@status' => $txn_type));
+        }
+      }
+      // Store the type of transaction in the remote status.
+      $transaction->remote_status = "{$xml->TxnType}";
     }
   }
-
-  // Store the type of transaction in the remote status.
-  $transaction->remote_status = $response[11];
 
   // Build a meaningful response message.
   $message = array(
-    '<b>' . commerce_authnet_reverse_txn_type($response[11]) . '</b>',
-    '<b>' . ($response[0] != '1' ? t('REJECTED') : t('ACCEPTED')) . ':</b> ' . check_plain($response[3]),
-    t('AVS response: @avs', array('@avs' => commerce_authnet_avs_response($response[5]))),
+    '<b>' . commerce_dps_reverse_txn_type((string)$xml->TxnType) . '</b>',
+    '<b>' . ($success != '1' ? t('REJECTED') : t('ACCEPTED')) . ':</b> ' . check_plain((string)$xml->Transaction->MerchantHelpText),
   );
 
   // Add the CVV response if enabled.
-  if (isset($nvp['x_card_code'])) {
-    $message[] = t('CVV match: @cvv', array('@cvv' => commerce_authnet_cvv_response($response[38])));
+  if (isset($txn->Cvc2)) {
+    $message[] = t('CVV match: @cvv', array('@cvv' => (string)$xml->Transaction->Cvc2ResultCode));
   }
 
   $transaction->message = implode('<br />', $message);
+
+  watchdog('commerce_dps_pxpost', 'Transaction: <pre>!transaction</pre>', array('!transaction' => print_r($transaction,1)), WATCHDOG_DEBUG);
 
   // Save the transaction information.
   commerce_payment_transaction_save($transaction);
 
   // If the payment failed, display an error and rebuild the form.
-  if ($response[0] != '1') {
+  if ($success != '1') {
     drupal_set_message(t('We received the following error processing your card. Please enter your information again or try a different card.'), 'error');
-    drupal_set_message(check_plain($response[3]), 'error');
+    drupal_set_message(check_plain((string)$xml->CardHolderResponseDescription), 'error');
     return FALSE;
   }
+
+  // @TODO ...
+
+  return;
 
   // If Card on File storage is enabled via CIM and the form says to store data...
   if (module_exists('commerce_cardonfile') && !empty($payment_method['settings']['cardonfile']) &&

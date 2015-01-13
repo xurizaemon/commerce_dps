@@ -10,14 +10,8 @@
  */
 function commerce_dps_pxpay_generate_request($transaction) {
   // Ensure amount is dd.cc
-  switch ($transaction['currency']) {
-    case 'JPY':
-      $transaction['amount'] = number_format($transaction['amount'], 0, '', '');
-      break;
-    default:
-      $transaction['amount'] = number_format($transaction['amount'], 2, '.', '');
-      break;
-  }
+  module_load_include('inc', 'commerce_dps_pxpost', 'commerce_dps');
+  $transaction['amount'] = commerce_dps_currency_format($transaction['amount'], $transaction['currency']);
 
   $xml = '<GenerateRequest>';
   $xml .= '  <PxPayUserId>' . htmlspecialchars($transaction['user_id']) . '</PxPayUserId>';
@@ -37,7 +31,14 @@ function commerce_dps_pxpay_generate_request($transaction) {
   }
 
   $url = $transaction['server'];
-  $params = array('method' => 'POST', 'data' => $xml);
+  $params = array(
+    'method' => 'POST',
+    'data' => $xml,
+    'headers' => array(
+      'Content-type' =>  'application/xml',
+      'User-Agent' => 'Drupal Commerce DPS PX Pay (+https://drupal.org/project/commerce_dps)'
+    ),
+  );
   $response = drupal_http_request($url, $params);
 
   if ($transaction['log']) {

@@ -101,3 +101,39 @@ function commerce_dps_txn_type($txn_type) {
       return NULL;
   }
 }
+
+/**
+ * Format currency for DPS.
+ *
+ * @see https://www.drupal.org/node/1927650
+ */
+function commerce_dps_currency_format($amount, $currency='NZD') {
+  switch ($currency) {
+    case 'JPY':
+      return number_format($amount, 0, '', '');
+
+    default:
+      return number_format($amount/100, 2, '.', '');
+  }
+}
+
+/**
+ * Returns the description of an Authorize.Net transaction type.
+ *
+ * @param $txn_type
+ *   An Authorize.Net transaction type string.
+ */
+function commerce_dps_reverse_txn_type($txn_type) {
+  switch (strtoupper($txn_type)) {
+    case 'Auth':
+      return t('Authorization only');
+    case 'Complete':
+      return t('Prior authorization capture');
+    case 'Purchase':
+      return t('Purchase');
+    case 'Refund':
+      return t('Refund');
+    case 'Validate':
+      return t('Validate only');
+  }
+}
