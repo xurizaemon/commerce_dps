@@ -103,21 +103,6 @@ function commerce_dps_txn_type($txn_type) {
 }
 
 /**
- * Format currency for DPS.
- *
- * @see https://www.drupal.org/node/1927650
- */
-function commerce_dps_currency_format($amount, $currency='NZD') {
-  switch ($currency) {
-    case 'JPY':
-      return number_format($amount, 0, '', '');
-
-    default:
-      return number_format($amount/100, 2, '.', '');
-  }
-}
-
-/**
  * Returns the description of an Authorize.Net transaction type.
  *
  * @param $txn_type

@@ -77,8 +77,13 @@ function commerce_dps_pxpost_commerce_payment_method_info() {
     // Card on File callbacks.
     'cardonfile' => array(
       'charge callback' => 'commerce_dps_pxpost_cardonfile_charge',
-      'update callback' => 'commerce_dps_pxpost_cardonfile_update',
-      'delete callback' => 'commerce_dps_pxpost_cardonfile_delete',
+      // AFAICT these don't apply since DPS doesn't offer a way to
+      // update or delete a token stored at the gateway?
+      // @see https://www.drupal.org/node/2116357
+      /*
+        'update callback' => 'commerce_dps_pxpost_cardonfile_update',
+        'delete callback' => 'commerce_dps_pxpost_cardonfile_delete',
+      */
     ),
   );
 
@@ -269,9 +274,29 @@ function commerce_dps_pxpost_submit_form_validate($payment_method, $pane_form, $
 
 /**
  * Payment method callback: checkout form submission.
+ *
+ * @TODO There is a lot of code duplicated between this function and
+ * commerce_dps_pxpost_submit_form_submit(). Maybe split out of these
+ * two functions into a shared function?
+ *
+ * @param object $payment_method
+ *  The payment method instance definition array.
+ * @param object $card_data
+ *   The stored credit card data array to be processed
+ * @param object $order
+ *   The order object that is being processed
+ * @param array $charge
+ *   The price array for the charge amount with keys of 'amount' and 'currency'
+ *   If null the total value of the order is used.
  */
 function commerce_dps_pxpost_submit_form_submit($payment_method, $pane_form, $pane_values, $order, $charge) {
   module_load_include('inc', 'commerce_dps_pxpost', 'commerce_dps');
+
+  // Format order total for transaction.
+  if (!isset($charge)) {
+    $wrapper = entity_metadata_wrapper('commerce_order', $order);
+    $charge = commerce_line_items_total($wrapper->commerce_line_items);
+  }
 
   // @TODO: If the customer specified payment using a card on file,
   // attempt that now and simply return the result.
@@ -379,7 +404,7 @@ function commerce_dps_pxpost_submit_form_submit($payment_method, $pane_form, $pa
   $txn = new SimpleXMLElement('<Txn></Txn>');
   $txn->addChild('PostUsername', $payment_method['settings']['username']);
   $txn->addChild('PostPassword', $payment_method['settings']['password']);
-  $txn->addChild('Amount', commerce_dps_currency_format($charge['amount'], $charge['currency_code']));
+  $txn->addChild('Amount', commerce_currency_amount_to_decimal($charge['amount'], $charge['currency_code']));
   $txn->addChild('TxnType', commerce_dps_txn_type($txn_type));
   switch ($txn_type) {
     case COMMERCE_CREDIT_AUTH_CAPTURE:
@@ -714,6 +739,10 @@ function commerce_dps_pxpost_submit_form_submit_cardonfile($payment_method, $pan
  *   The price array for the charge amount with keys of 'amount' and 'currency'
  *   If null the total value of the order is used.
  *
+ * @TODO There is a lot of code duplicated between this function and
+ * commerce_dps_pxpost_submit_form_submit(). Maybe split out of these
+ * two functions into a shared function?
+ *
  * @return
  *   TRUE if the transaction was successful
  */
@@ -724,88 +753,129 @@ function commerce_dps_pxpost_cardonfile_charge($payment_method, $card_data, $ord
     $charge = commerce_line_items_total($wrapper->commerce_line_items);
   }
 
-  // Extract the Customer Profile and Payment Profile IDs from the remote_id.
-  list($cim_customer_profile_id, $cim_payment_profile_id) = explode('|', $card_data->remote_id);
+  $txn_type = COMMERCE_CREDIT_REFERENCE_TXN;
 
-  // Determine the proper transaction element to use inside the XML.
-  $element_name = commerce_authnet_cim_transaction_element_name($payment_method['settings']['txn_type']);
-
-  // Build a data array for the transaction API request.
-  $api_request_data = array(
-    'transaction' => array(
-      $element_name => array(
-        'amount' => number_format(commerce_currency_amount_to_decimal($charge['amount'], $charge['currency_code']), 2, '.', ''),
-        'customerProfileId' => $cim_customer_profile_id,
-        'customerPaymentProfileId' => $cim_payment_profile_id,
-        'order' => array(
-          'invoiceNumber' => $order->order_number,
-        ),
-      ),
-    ),
-    'extraOptions' => '<![CDATA[x_delim_data=TRUE&amp;x_delim_char=|&amp;x_encap_char="&amp;x_solution_id=A1000009&amp;x_currency_code=' . $charge['currency_code'] . '&amp;x_customer_ip=' . substr(ip_address(), 0, 15) . ']]>',
-  );
-
-  // If we get a response from the API server...
-  $xml_response = commerce_authnet_cim_request($payment_method, 'createCustomerProfileTransactionRequest', $api_request_data);
-
-  if (!empty($xml_response->directResponse)) {
-    // Extract the response data from the XML.
-    $response = explode('|', (string) $xml_response->directResponse);
-
-    for ($i = 0; $i < count($response); $i++) {
-      $response[$i] = substr($response[$i], 1, strlen($response[$i]) - 2);
-    }
-
-    // Prepare a transaction object to represent the transaction attempt.
-    $transaction = commerce_payment_transaction_new('authnet_aim', $order->order_id);
-    $transaction->instance_id = $payment_method['instance_id'];
-    $transaction->remote_id = $response[6];
-    $transaction->amount = $charge['amount'];
-    $transaction->currency_code = $charge['currency_code'];
-    $transaction->payload[REQUEST_TIME] = $response;
-
-    // If we didn't get an approval response code...
-    if ($response[0] != '1') {
-      // Create a failed transaction with the error message.
-      $transaction->status = COMMERCE_PAYMENT_STATUS_FAILURE;
-    }
-    else {
-      // Set the transaction status based on the type of transaction this was.
-      switch ($payment_method['settings']['txn_type']) {
-        case COMMERCE_CREDIT_AUTH_ONLY:
-          $transaction->status = COMMERCE_PAYMENT_STATUS_PENDING;
-          break;
-
-        case COMMERCE_CREDIT_AUTH_CAPTURE:
-          $transaction->status = COMMERCE_PAYMENT_STATUS_SUCCESS;
-          break;
+  // Prepare a description for the order (truncated if over 255 char).
+  $description = array();
+  // Descriptions come from products, though not all environments have
+  // them. So check first.
+  if (function_exists('commerce_product_line_item_types')) {
+    foreach ($order_wrapper->commerce_line_items as $delta => $line_item_wrapper) {
+      if (in_array($line_item_wrapper->type->value(), commerce_product_line_item_types())) {
+        $description[] = round($line_item_wrapper->quantity->value(), 2) . 'x ' . $line_item_wrapper->line_item_label->value();
       }
     }
-
-    // Store the type of transaction in the remote status.
-    $transaction->remote_status = $response[11];
-
-    // Build a meaningful response message.
-    $message = array(
-      '<b>' . commerce_authnet_reverse_txn_type(commerce_authnet_txn_type($payment_method['settings']['txn_type'])) . '</b>',
-      '<b>' . ($response[0] != '1' ? t('REJECTED') : t('ACCEPTED')) . ':</b> ' . check_plain($response[3]),
-      t('AVS response: @avs', array('@avs' => commerce_authnet_avs_response($response[5]))),
-    );
-
-    $transaction->message = implode('<br />', $message);
-
-    // Save the transaction information.
-    commerce_payment_transaction_save($transaction);
-
-    // If the payment failed, display an error and rebuild the form.
-    if ($response[0] != '1') {
-      drupal_set_message(t('We received the following error processing your card. Please enter your information again or try a different card.'), 'error');
-      drupal_set_message(check_plain($response[3]), 'error');
-      return FALSE;
-    }
-
-    return;
   }
+  $description = substr(implode(', ', $description), 0, 255);
+
+  $txn = new SimpleXMLElement('<Txn></Txn>');
+  $txn->addChild('PostUsername', $payment_method['settings']['username']);
+  $txn->addChild('PostPassword', $payment_method['settings']['password']);
+  $txn->addChild('Amount', commerce_dps_currency_format($charge['amount'], $charge['currency_code']));
+  $txn->addChild('TxnType', commerce_dps_txn_type($txn_type));
+  $txn->addChild('InputCurrency', $charge['currency_code']);
+  $txn->addChild('DpsBillingId', $card_data->remote_id);
+  if (isset($order->merchant_reference)) {
+    $txn->addChild('MerchantReference', $order->merchant_reference);
+  }
+  else {
+    $txn->addChild('MerchantReference', t('@prefix @order_number', array('@prefix' => $payment_method['settings']['reference_prefix'], '@order_number' => $order->order_number)));
+  }
+  if (!empty($order->mail)) {
+    $txn->addChild('TxnData1', $order->mail);
+  }
+  if (!empty($description)) {
+    $txn->addChild('TxnData2', $description);
+  }
+  $xml = $txn->asXML();
+
+  if ($payment_method['settings']['log_transactions']) {
+    watchdog('commerce_dps_pxpost', 'XML sent to DPS: <pre>@xml</pre>', array('@xml' => $xml), WATCHDOG_DEBUG);
+  }
+
+  $options = array(
+    'method' => 'POST',
+    'data' => $xml,
+    'headers' => array(
+      'Content-type' =>  'application/xml',
+      'User-Agent' => 'Drupal Commerce DPS PX Post (+https://drupal.org/project/commerce_dps)'
+    ),
+  );
+  $result = drupal_http_request($payment_method['settings']['server'], $options);
+
+  if ($payment_method['settings']['log_transactions']) {
+    watchdog('commerce_dps_pxpost', 'PxPost result (@code) from @server: <pre>@data</pre>', array('@code' => trim($result->code . ' ' . $result->status_message), '@data' => $result->data, '@server' => $payment_method['settings']['server']), WATCHDOG_DEBUG);
+  }
+
+  // Prepare a transaction object to log the API response.
+  $transaction = commerce_payment_transaction_new('dps_pxpost', $order->order_id);
+  $transaction->instance_id = $payment_method['instance_id'];
+  $transaction->amount = $charge['amount'];
+  $transaction->currency_code = $charge['currency_code'];
+  $transaction->payload[REQUEST_TIME] = $result->data;
+
+  if ($result->code == 200) {
+    if ($xml = simplexml_load_string($result->data)) {
+      $success = "{$xml->Success}";
+      watchdog('commerce_dps_pxpost', 'XML: <pre>@data</pre>', array('@data' => print_r($xml,1)), WATCHDOG_DEBUG);
+      $transaction->remote_id = (string)$xml->DpsTxnRef;
+
+      // If we didn't get an approval response code...
+      if ($success != '1') {
+        // Create a failed transaction with the error message.
+        $transaction->status = COMMERCE_PAYMENT_STATUS_FAILURE;
+      }
+      else {
+        // Set the transaction status based on the type of transaction this was.
+        switch ($txn_type) {
+          case COMMERCE_CREDIT_AUTH_ONLY:
+            $transaction->status = COMMERCE_PAYMENT_STATUS_PENDING;
+            break;
+
+          case COMMERCE_CREDIT_AUTH_CAPTURE:
+            $transaction->status = COMMERCE_PAYMENT_STATUS_SUCCESS;
+            break;
+
+          case COMMERCE_CREDIT_CAPTURE_ONLY:
+            $transaction->status = COMMERCE_PAYMENT_STATUS_SUCCESS;
+            break;
+
+          default:
+            watchdog('commerce_dps_pxpost', 'Status: @status', array('@status' => $txn_type));
+        }
+      }
+      // Store the type of transaction in the remote status.
+      $transaction->remote_status = "{$xml->TxnType}";
+    }
+  }
+
+  // Build a meaningful response message.
+  $message = array(
+    '<b>' . commerce_dps_reverse_txn_type((string)$xml->TxnType) . '</b>',
+    '<b>' . ($success != '1' ? t('REJECTED') : t('ACCEPTED')) . ':</b> ' . check_plain((string)$xml->Transaction->MerchantHelpText),
+  );
+
+  // Add the CVV response if enabled.
+  if (isset($txn->Cvc2)) {
+    $message[] = t('CVV match: @cvv', array('@cvv' => (string)$xml->Transaction->Cvc2ResultCode));
+  }
+
+  $transaction->message = implode('<br />', $message);
+
+    watchdog('commerce_dps_pxpost', 'Transaction: <pre>!transaction</pre>', array('!transaction' => print_r($transaction,1)), WATCHDOG_DEBUG);
+
+  // Save the transaction information.
+  commerce_payment_transaction_save($transaction);
+
+  // If the payment failed, display an error and rebuild the form.
+  if ($success != '1') {
+    drupal_set_message(t('We received the following error processing your card. Please enter your information again or try a different card.'), 'error');
+    drupal_set_message(check_plain((string)$xml->CardHolderResponseDescription), 'error');
+    return FALSE;
+  }
+
+  return;
+/*
   elseif ((string) $xml_response->messages->message->code == 'E00040') {
     // If the response indicated a non-existent profile, deactive it now.
     $card_data->status = 0;
@@ -817,62 +887,5 @@ function commerce_dps_pxpost_cardonfile_charge($payment_method, $card_data, $ord
 
   drupal_set_message(t('We could not process your card on file at this time. Please try again or use a different card.'), 'error');
   return FALSE;
-
-}
-
-/**
- * Card on file callback: updates the associated customer payment profile.
- */
-function commerce_dps_pxpost_cardonfile_update($form, &$form_state, $payment_method, $card_data) {
-  // Extract the Customer Profile and Payment Profile IDs from the remote_id.
-  list($cim_customer_profile_id, $cim_payment_profile_id) = explode('|', $card_data->remote_id);
-
-  if ($form_state['values']['credit_card']['number'] != $form['credit_card']['number']['#default_value']) {
-    $number = $form_state['values']['credit_card']['number'];
-  }
-  else {
-    $number = 'XXXX' . $card_data->card_number;
-  }
-
-  // Load the payment profile so that billTo can be updated.
-  $payment_profile_xml = commerce_authnet_cim_get_customer_payment_profile_request($payment_method, $cim_customer_profile_id, $cim_payment_profile_id);
-  $billto = $payment_profile_xml->paymentProfile->billTo;
-  $first_name = (string) $billto->firstName;
-  $last_name = (string) $billto->lastName;
-  // Extract the first and last name from form values.
-  if (!empty($form_state['values']['credit_card']['owner'])) {
-    $name_parts = explode(' ', $form_state['values']['credit_card']['owner']);
-    $first_name = array_shift($name_parts);
-    $last_name = implode(' ', $name_parts);
-  }
-
-  // Build the base profile update data.
-  $api_request_data = array(
-    'customerProfileId' => $cim_customer_profile_id,
-    'paymentProfile' => array(
-      'billTo' => array(
-        'firstName' =>  substr($first_name, 0, 50),
-        'lastName' => substr($last_name, 0, 50),
-        'company' => (string) $billto->company,
-        'address' => (string) $billto->address,
-        'city' => (string) $billto->city,
-        'state' => (string) $billto->state,
-        'zip' => (string) $billto->zip,
-        'country' => (string) $billto->country,
-      ),
-      'payment' => array(
-        'creditCard' => array(
-          'cardNumber' => $number,
-          'expirationDate' => $card_data->card_exp_year . '-' . $card_data->card_exp_month,
-        ),
-      ),
-      'customerPaymentProfileId' => $cim_payment_profile_id,
-    ),
-  );
-
-  // Fetch the response from the API server and let Card on File know if the
-  // update was successful.
-  $xml_response = commerce_authnet_cim_request($payment_method, 'updateCustomerPaymentProfileRequest', $api_request_data);
-
-  return (string) $xml_response->messages->message->code == 'I00001';
+*/
 }

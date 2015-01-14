@@ -11,7 +11,7 @@
 function commerce_dps_pxpay_generate_request($transaction) {
   // Ensure amount is dd.cc
   module_load_include('inc', 'commerce_dps_pxpost', 'commerce_dps');
-  $transaction['amount'] = commerce_dps_currency_format($transaction['amount'], $transaction['currency']);
+  // $transaction['amount'] = commerce_dps_currency_format($transaction['amount'], $transaction['currency']);
 
   $xml = '<GenerateRequest>';
   $xml .= '  <PxPayUserId>' . htmlspecialchars($transaction['user_id']) . '</PxPayUserId>';
