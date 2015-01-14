@@ -336,7 +336,16 @@ function commerce_dps_pxpost_submit_form_submit($payment_method, $pane_form, $pa
     }
   }
 */
-  // Prepare the billing address for use in the request.
+
+  // By default we don't set EnableAddBillCard with DPS.
+  $addbillcard = FALSE;
+  // Unless Card on File is enabled and the form says to store it.
+  if (module_exists('commerce_cardonfile') && !empty($payment_method['settings']['cardonfile']) &&
+    !empty($pane_values['credit_card']['cardonfile_store']) && $pane_values['credit_card']['cardonfile_store']) {
+    $addbillcard = TRUE;
+  }
+
+  // Prepare a card holder name for use in the request.
   if ($order_wrapper->commerce_customer_billing->value()){
     $billing_address = $order_wrapper->commerce_customer_billing->commerce_customer_address->value();
     if (!empty($billing_address['name_line'])) {
@@ -344,9 +353,10 @@ function commerce_dps_pxpost_submit_form_submit($payment_method, $pane_form, $pa
     }
   }
 
-  // Build a description for the order.
+  // Prepare a description for the order (truncated if over 255 char).
   $description = array();
-  // Descriptions come from products, though not all environments have them. So check first.
+  // Descriptions come from products, though not all environments have
+  // them. So check first.
   if (function_exists('commerce_product_line_item_types')) {
     foreach ($order_wrapper->commerce_line_items as $delta => $line_item_wrapper) {
       if (in_array($line_item_wrapper->type->value(), commerce_product_line_item_types())) {
@@ -366,7 +376,6 @@ function commerce_dps_pxpost_submit_form_submit($payment_method, $pane_form, $pa
                 ),1)), WATCHDOG_DEBUG);
   }
 
-  // @TODO Rewrite using SimpleXML just because.
   $txn = new SimpleXMLElement('<Txn></Txn>');
   $txn->addChild('PostUsername', $payment_method['settings']['username']);
   $txn->addChild('PostPassword', $payment_method['settings']['password']);
@@ -395,6 +404,9 @@ function commerce_dps_pxpost_submit_form_submit($payment_method, $pane_form, $pa
       }
       if (!empty($description)) {
         $txn->addChild('TxnData2', $description);
+      }
+      if ($addbillcard) {
+        $txn->addChild('EnableAddBillCard', 1);
       }
       break;
 
@@ -440,7 +452,7 @@ function commerce_dps_pxpost_submit_form_submit($payment_method, $pane_form, $pa
   if ($result->code == 200) {
     if ($xml = simplexml_load_string($result->data)) {
       $success = "{$xml->Success}";
-      watchdog('commerce_dps_pxpost', 'XML: <pre>@data</pre>', array('@data' => htmlspecialchars(print_r($xml,1))), WATCHDOG_DEBUG);
+      watchdog('commerce_dps_pxpost', 'XML: <pre>@data</pre>', array('@data' => print_r($xml,1)), WATCHDOG_DEBUG);
       $transaction->remote_id = (string)$xml->DpsTxnRef;
 
       // If we didn't get an approval response code...
@@ -497,7 +509,52 @@ function commerce_dps_pxpost_submit_form_submit($payment_method, $pane_form, $pa
     return FALSE;
   }
 
-  // @TODO ...
+  // For certain transaction types, if we got back a Billing ID we
+  // need to store that against the user.
+  switch ($txn_type) {
+    case COMMERCE_CREDIT_AUTH_ONLY:
+    case COMMERCE_CREDIT_AUTH_CAPTURE:
+    case COMMERCE_CREDIT_CAPTURE_ONLY:
+      if (isset($xml->Transaction->DpsBillingId)) {
+        $billing_id = (string)$xml->Transaction->DpsBillingId;
+
+        // Build a payment details array for the credit card.
+        $payment_details = array(
+          'cardNumber' => $pane_values['credit_card']['number'],
+          'expirationDate' => $pane_values['credit_card']['exp_year'] . '-' . $pane_values['credit_card']['exp_month'],
+        );
+        if (isset($pane_values['credit_card']['code'])) {
+          $payment_details['cardCode'] = $pane_values['credit_card']['code'];
+        }
+
+        // First look to see if we already have cards on file for the user.
+        $stored_cards = commerce_cardonfile_load_multiple_by_uid($order->uid, $payment_method['instance_id']);
+        $add_to_profile = NULL;
+
+        // If we didn't find any, store the details.
+        if (empty($stored_cards)) {
+          $card_data = commerce_cardonfile_new();
+          $card_data->uid = $order->uid;
+          $card_data->payment_method = $payment_method['method_id'];
+          $card_data->instance_id = $payment_method['instance_id'];
+          $card_data->remote_id = $billing_id;
+          $card_data->card_type = !empty($card_type) ? $card_type : 'card';
+          $card_data->card_name = !empty($billing_address['name_line']) ? $billing_address['name_line'] : '';
+          $card_data->card_number = substr($pane_values['credit_card']['number'], -4);
+          $card_data->card_exp_month = $pane_values['credit_card']['exp_month'];
+          $card_data->card_exp_year = $pane_values['credit_card']['exp_year'];
+          $card_data->status = 1;
+
+          // Save and log the creation of the new card on file.
+          commerce_cardonfile_save($card_data);
+          watchdog('commerce_dps_pxpost', 'Card data: <pre>!card_data</pre>', array('!card_data' => print_r($card_data,1)), WATCHDOG_DEBUG);
+          watchdog('commerce_dps_pxpost', 'DPS Billing ID @billing_id created and saved to user @uid.', array('@profile_id' => $billing_id, '@uid' => $order->uid));
+        }
+        else {
+          watchdog('commerce_dps_pxpost', 'Stored cards: <pre>!cards</pre>', array('!cards' => print_r($stored_cards,1)), WATCHDOG_DEBUG);
+        }
+      }
+  }
 
   return;
 
@@ -633,6 +690,7 @@ function commerce_dps_pxpost_submit_form_submit($payment_method, $pane_form, $pa
 function commerce_dps_pxpost_submit_form_submit_cardonfile($payment_method, $pane_form, $pane_values, $order, $charge) {
   // First attempt to load the card on file.
   $card_data = commerce_cardonfile_load($pane_values['cardonfile']);
+  watchdog('commerce_dps_pxpost', 'Card data: <pre>!data</pre>', array('!data' => print_r($card_data,1)), WATCHDOG_DEBUG);
 
   // Fail now if it is no longer available or the card is inactive.
   if (empty($card_data) || $card_data->status == 0) {
