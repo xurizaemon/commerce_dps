@@ -173,6 +173,7 @@ function commerce_dps_pxpay_submit_form($payment_method, $pane_values, $checkout
  * Called from commerce_dps_pxpay_redirect_form().
  */
 function commerce_dps_pxpay_order_form($form, &$form_state, $order, $settings) {
+  module_load_include('inc', 'commerce_dps_pxpay', 'commerce_dps');
   module_load_include('inc', 'commerce_dps_pxpay', 'commerce_dps_pxpay');
 
   $wrapper = entity_metadata_wrapper('commerce_order', $order);
@@ -219,6 +220,7 @@ function commerce_dps_pxpay_process_fprn($order) {
     }
   }
 */
+  module_load_include('inc', 'commerce_dps_pxpay', 'commerce_dps');
   module_load_include('inc', 'commerce_dps_pxpay', 'commerce_dps_pxpay');
 
   if(!$order) {
