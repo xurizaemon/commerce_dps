@@ -29,7 +29,14 @@ function commerce_dps_pxpay_generate_request($transaction) {
   }
 
   $url = $transaction['server'];
-  $params = array('method' => 'POST', 'data' => $xml);
+  $params = array(
+    'method' => 'POST',
+    'data' => $xml,
+    'headers' => array(
+      'Content-type' =>  'application/xml',
+      'User-Agent' => 'Drupal Commerce DPS PX Pay (+https://drupal.org/project/commerce_dps)'
+    ),
+  );
   $response = drupal_http_request($url, $params);
 
   if ($transaction['log']) {
