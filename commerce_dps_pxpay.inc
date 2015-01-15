@@ -62,9 +62,10 @@ function commerce_dps_pxpay_generate_request($transaction) {
         }
         else {
           watchdog('commerce_dps_pxpay',
-            'GenerateRequest invalid: @reference, XML: @xml',
+            'GenerateRequest invalid: @reference, HTTP @code, XML: @xml',
             array(
               '@reference' => $transaction['reference'],
+              '@code' => $response->code,
               '@xml' => isset($response->data) ? $response->data : '',
             ),
             WATCHDOG_ERROR
@@ -73,16 +74,6 @@ function commerce_dps_pxpay_generate_request($transaction) {
       }
     }
   }
-  watchdog(
-    'commerce_dps_pxpay',
-    'GenerateRequest: @reference, HTTP @code, XML: @xml',
-    array(
-      '@reference' => $transaction['reference'],
-      '@code' => $response->code,
-      '@xml' => isset($response->data) ? $response->data : '',
-    ),
-    WATCHDOG_ERROR
-  );
   return FALSE;
 }
 
@@ -94,8 +85,6 @@ function commerce_dps_pxpay_generate_request($transaction) {
  * @return array $data Transaction data.
  */
 function commerce_dps_pxpay_process_response($transaction) {
-  // In testing, I'm sure I saw this work without setting
-  // PxPayUserId ... weird.
   $xml = '<ProcessResponse>';
   $xml .= '<PxPayUserId>' . $transaction['user_id'] . '</PxPayUserId>';
   $xml .= '<PxPayKey>' . $transaction['key'] . '</PxPayKey>';
