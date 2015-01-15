@@ -103,10 +103,10 @@ function commerce_dps_txn_type($txn_type) {
 }
 
 /**
- * Returns the description of an Authorize.Net transaction type.
+ * Returns the description of a DPS PX transaction type.
  *
  * @param $txn_type
- *   An Authorize.Net transaction type string.
+ *   A DPS transaction type string.
  */
 function commerce_dps_reverse_txn_type($txn_type) {
   switch (strtoupper($txn_type)) {
