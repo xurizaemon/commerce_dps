@@ -2,22 +2,14 @@
 
 /**
  * @file
- * DPS lib functions.
+ * DPS PX Pay shared functions.
  */
 
 /**
  * Generate request; if valid, return URL to redirect to.
  */
 function commerce_dps_pxpay_generate_request($transaction) {
-  // Ensure amount is dd.cc
-  switch ($transaction['currency']) {
-    case 'JPY':
-      $transaction['amount'] = number_format($transaction['amount'], 0, '', '');
-      break;
-    default:
-      $transaction['amount'] = number_format($transaction['amount'], 2, '.', '');
-      break;
-  }
+  module_load_include('inc', 'commerce_dps_pxpost', 'commerce_dps');
 
   $xml = '<GenerateRequest>';
   $xml .= '  <PxPayUserId>' . htmlspecialchars($transaction['user_id']) . '</PxPayUserId>';
