@@ -192,7 +192,7 @@ function commerce_dps_pxpost_settings_form($settings = NULL) {
     $form['cardonfile'] = array(
       '#type' => 'checkbox',
       '#title' => t('Enable Card on File functionality with this payment method.'),
-      '#description' => t('This requires an Authorize.Net account upgraded to include support for CIM (Customer Information Manager).'),
+      '#description' => t('This requires your DPS account to have AddBillCard support enabled.'),
       '#default_value' => $settings['cardonfile'],
     );
 
@@ -582,131 +582,6 @@ function commerce_dps_pxpost_submit_form_submit($payment_method, $pane_form, $pa
   }
 
   return;
-
-  // If Card on File storage is enabled via CIM and the form says to store data...
-  if (module_exists('commerce_cardonfile') && !empty($payment_method['settings']['cardonfile']) &&
-    !empty($pane_values['credit_card']['cardonfile_store']) && $pane_values['credit_card']['cardonfile_store']) {
-    // Build a payment details array for the credit card.
-    $payment_details = array(
-      'cardNumber' => $pane_values['credit_card']['number'],
-      'expirationDate' => $pane_values['credit_card']['exp_year'] . '-' . $pane_values['credit_card']['exp_month'],
-    );
-
-    if (isset($pane_values['credit_card']['code'])) {
-      $payment_details['cardCode'] = $pane_values['credit_card']['code'];
-    }
-
-    // First look to see if we already have cards on file for the user.
-    $stored_cards = commerce_cardonfile_load_multiple_by_uid($order->uid, $payment_method['instance_id']);
-    $add_to_profile = NULL;
-
-    // If we didn't find any, attempt to make a new Customer Profile now.
-    if (empty($stored_cards)) {
-      // Submit a CIM request to create the Customer Profile.
-      if ($response = commerce_authnet_cim_create_customer_profile_request($payment_method, $order, $payment_details)) {
-        // If the Customer Profile creation was a success, store the new card on
-        // file data locally.
-        if ((string) $response->messages->resultCode == 'Ok') {
-          // Build a remote ID that includes the Customer Profile ID and the
-          // Payment Profile ID.
-          $remote_id = (string) $response->customerProfileId . '|' . (string) $response->customerPaymentProfileIdList->numericString;
-
-          $card_data = commerce_cardonfile_new();
-          $card_data->uid = $order->uid;
-          $card_data->payment_method = $payment_method['method_id'];
-          $card_data->instance_id = $payment_method['instance_id'];
-          $card_data->remote_id = $remote_id;
-          $card_data->card_type = !empty($card_type) ? $card_type : 'card';
-          $card_data->card_name = !empty($billing_address['name_line']) ? $billing_address['name_line'] : '';
-          $card_data->card_number = substr($pane_values['credit_card']['number'], -4);
-          $card_data->card_exp_month = $pane_values['credit_card']['exp_month'];
-          $card_data->card_exp_year = $pane_values['credit_card']['exp_year'];
-          $card_data->status = 1;
-
-          // Save and log the creation of the new card on file.
-          commerce_cardonfile_save($card_data);
-          watchdog('commerce_authnet', 'CIM Customer Profile @profile_id created and saved to user @uid.', array('@profile_id' => (string) $response->customerProfileId, '@uid' => $order->uid));
-        }
-        elseif ((string) $response->messages->message->code == 'E00039') {
-          // But if a Customer Profile already existed for this user, attempt
-          // instead to add this card as a new Payment Profile to it.
-          $result = array_filter(explode(' ', (string) $response->messages->message->text), 'is_numeric');
-          $add_to_profile = reset($result);
-        }
-      }
-    }
-    else {
-      // Extract the user's Customer Profile ID from the first card's remote ID.
-      $card_data = reset($stored_cards);
-      list($cim_customer_profile_id, $cim_payment_profile_id) = explode('|', $card_data->remote_id);
-
-      // Attempt to add the card as a new payment profile to this Customer Profile.
-      $add_to_profile = $cim_customer_profile_id;
-    }
-
-    // Attempt to add the card to an existing Customer Profile if specified.
-    if (!empty($add_to_profile)) {
-      $response = commerce_authnet_cim_create_customer_payment_profile_request($payment_method, $add_to_profile, $order, $payment_details);
-
-      // If the Payment Profile creation was a success, store the new card on
-      // file data locally.
-      if ((string) $response->messages->resultCode == 'Ok') {
-        // Build a remote ID that includes the Customer Profile ID and the new
-        // Payment Profile ID.
-        $remote_id = $add_to_profile . '|' . (string) $response->customerPaymentProfileId;
-
-        $card_data = commerce_cardonfile_new();
-        $card_data->uid = $order->uid;
-        $card_data->payment_method = $payment_method['method_id'];
-        $card_data->instance_id = $payment_method['instance_id'];
-        $card_data->remote_id = $remote_id;
-        $card_data->card_type = !empty($card_type) ? $card_type : 'card';
-        $card_data->card_name = !empty($billing_address['name_line']) ? $billing_address['name_line'] : '';
-        $card_data->card_number = substr($pane_values['credit_card']['number'], -4);
-        $card_data->card_exp_month = $pane_values['credit_card']['exp_month'];
-        $card_data->card_exp_year = $pane_values['credit_card']['exp_year'];
-        $card_data->status = 1;
-
-        // Save and log the creation of the new card on file.
-        commerce_cardonfile_save($card_data);
-        watchdog('commerce_authnet', 'CIM Payment Profile added to Customer Profile @profile_id for user @uid.', array('@profile_id' => $add_to_profile, '@uid' => $order->uid));
-      }
-      elseif (!empty($card_data) && (string) $response->messages->message->code == 'E00040') {
-        // But if we could not find a customer profile, assume the existing
-        // customer profile ID we had is no longer valid and deactivate the card
-        // data that resulted in the error.
-        $card_data->status = 0;
-        commerce_cardonfile_save($card_data);
-
-        // Submit a CIM request to create the Customer Profile.
-        if ($response = commerce_authnet_cim_create_customer_profile_request($payment_method, $order, $payment_details)) {
-          // If the Customer Profile creation was a success, store the new card on
-          // file data locally.
-          if ((string) $response->messages->resultCode == 'Ok') {
-            // Build a remote ID that includes the Customer Profile ID and the
-            // Payment Profile ID.
-            $remote_id = (string) $response->customerProfileId . '|' . (string) $response->customerPaymentProfileIdList->numericString;
-
-            $card_data = commerce_cardonfile_new();
-            $card_data->uid = $order->uid;
-            $card_data->payment_method = $payment_method['method_id'];
-            $card_data->instance_id = $payment_method['instance_id'];
-            $card_data->remote_id = $remote_id;
-            $card_data->card_type = !empty($card_type) ? $card_type : 'card';
-            $card_data->card_name = !empty($billing_address['name_line']) ? $billing_address['name_line'] : '';
-            $card_data->card_number = substr($pane_values['credit_card']['number'], -4);
-            $card_data->card_exp_month = $pane_values['credit_card']['exp_month'];
-            $card_data->card_exp_year = $pane_values['credit_card']['exp_year'];
-            $card_data->status = 1;
-
-            // Save and log the creation of the new card on file.
-            commerce_cardonfile_save($card_data);
-            watchdog('commerce_authnet', 'CIM Customer Profile @profile_id created and saved to user @uid.', array('@profile_id' => (string) $response->customerProfileId, '@uid' => $order->uid));
-          }
-        }
-      }
-    }
-  }
 }
 
 /**
@@ -875,17 +750,5 @@ function commerce_dps_pxpost_cardonfile_charge($payment_method, $card_data, $ord
   }
 
   return;
-/*
-  elseif ((string) $xml_response->messages->message->code == 'E00040') {
-    // If the response indicated a non-existent profile, deactive it now.
-    $card_data->status = 0;
-    commerce_cardonfile_save($card_data);
 
-    drupal_set_message(t('The card you selected is no longer valid. Please use a different card to complete payment.'), 'error');
-    return FALSE;
-  }
-
-  drupal_set_message(t('We could not process your card on file at this time. Please try again or use a different card.'), 'error');
-  return FALSE;
-*/
 }
