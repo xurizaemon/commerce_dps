@@ -22,6 +22,9 @@ function commerce_dps_pxpay_generate_request($transaction) {
   $xml .= '  <TxnId>' . htmlspecialchars($transaction['txn_id']) . '</TxnId>';
   $xml .= '  <UrlSuccess>' . htmlspecialchars($transaction['url_success']) . '</UrlSuccess>';
   $xml .= '  <UrlFail>' . htmlspecialchars($transaction['url_failure']) . '</UrlFail>';
+  if (!empty($transaction['add_bill_card'])) {
+    $xml .= '  <EnableAddBillCard>1</EnableAddBillCard>';
+  }
   $xml .= '</GenerateRequest>';
 
   if ($transaction['log']) {
@@ -151,6 +154,52 @@ function commerce_dps_pxpay_order_transaction($order, $payment, $status){
 
   // Save the transaction information.
   commerce_payment_transaction_save($transaction);
+
+  // Additionally, if we have a DpsBillingId and Commerce Card on File
+  // is enabled, let's save it.
+  if (module_exists('commerce_cardonfile')) {
+    if (!empty($payment['DpsBillingId'])) {
+      // Build a payment details array for the credit card.
+      $payment_details = array(
+        'cardNumber' => $payment['CardNumber'],
+        'expirationDate' => substr($payment['DateExpiry'], 0, 2) . '-' . substr($payment['DateExpiry'], 2, 4),
+      );
+      // First look to see if we already have cards on file for the user.
+      $stored_cards = commerce_cardonfile_load_multiple_by_uid($order->uid, $payment['instance_id']);
+      $add_to_profile = NULL;
+
+      // Obtain the payment method used.
+      if (!empty($order->data['payment_method'])) {
+        $payment_method = commerce_payment_method_instance_load($order->data['payment_method']);
+      }
+
+      // If we didn't find any, store the details.
+//      if (empty($stored_cards)) {
+        $card_data = commerce_cardonfile_new();
+        $card_data->uid = $order->uid;
+        $card_data->payment_method = $payment_method['method_id'];
+        $card_data->instance_id = $payment_method['instance_id'];
+        $card_data->remote_id = $payment['DpsBillingId'];
+        $card_data->card_type = !empty($card_type) ? $card_type : 'card';
+        $card_data->card_name = $payment['CardHolderName'];
+        $card_data->card_number = substr($payment['CardNumber'], -4, 4);
+        $card_data->card_exp_month = substr($payment['DateExpiry'], 0, 2);
+        $card_data->card_exp_year = '20' . substr($payment['DateExpiry'], 2, 4);
+        $card_data->status = 1;
+
+        watchdog('commerce_dps_pxpay', 'Card Data: <pre>!card_data</pre>', array('!card_data' => print_r($card_data,1)), WATCHDOG_DEBUG);
+
+        // Save and log the creation of the new card on file.
+        commerce_cardonfile_save($card_data);
+        watchdog('commerce_dps_pxpost', 'Card data: <pre>!card_data</pre>', array('!card_data' => print_r($card_data,1)), WATCHDOG_DEBUG);
+        watchdog('commerce_dps_pxpost', 'DPS Billing ID @billing_id created and saved to user @uid.', array('@profile_id' => $billing_id, '@uid' => $order->uid));
+        //}
+        //else {
+        //  watchdog('commerce_dps_pxpost', 'Stored cards: <pre>!cards</pre>', array('!cards' => print_r($stored_cards,1)), WATCHDOG_DEBUG);
+        //}
+    }
+  }
+
 }
 
 /**

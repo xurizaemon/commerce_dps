@@ -80,10 +80,8 @@ function commerce_dps_pxpost_commerce_payment_method_info() {
       // AFAICT these don't apply since DPS doesn't offer a way to
       // update or delete a token stored at the gateway?
       // @see https://www.drupal.org/node/2116357
-      /*
-        'update callback' => 'commerce_dps_pxpost_cardonfile_update',
-        'delete callback' => 'commerce_dps_pxpost_cardonfile_delete',
-      */
+      'update callback' => 'commerce_dps_pxpost_cardonfile_update',
+      'delete callback' => 'commerce_dps_pxpost_cardonfile_delete',
     ),
   );
 
