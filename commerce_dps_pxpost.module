@@ -204,7 +204,7 @@ function commerce_dps_pxpost_settings_form($settings = NULL) {
   else {
     $form['cardonfile'] = array(
       '#type' => 'markup',
-      '#markup' => t('To enable Card on File funcitionality download and install the Card on File module.'),
+      '#markup' => t('To enable Card on File functionality download and install the Card on File module.'),
     );
   }
 
@@ -227,7 +227,6 @@ function commerce_dps_pxpost_settings_form($settings = NULL) {
  * Payment method callback: checkout form.
  */
 function commerce_dps_pxpost_submit_form($payment_method, $pane_values, $checkout_pane, $order) {
-  watchdog('commerce_dps_pxpost', 'commerce_dps_pxpost_submit_form');
   module_load_include('inc', 'commerce_payment', 'includes/commerce_payment.credit_card');
 
   // Prepare the fields to include on the credit card form.
@@ -279,8 +278,10 @@ function commerce_dps_pxpost_submit_form_validate($payment_method, $pane_form, $
  *
  * @param object $payment_method
  *  The payment method instance definition array.
- * @param object $card_data
- *   The stored credit card data array to be processed
+ * @param object $pane_form
+ *   Form API array.
+ * @param object $pane_values
+ *   Submitted form values.
  * @param object $order
  *   The order object that is being processed
  * @param array $charge
@@ -749,4 +750,19 @@ function commerce_dps_pxpost_cardonfile_charge($payment_method, $card_data, $ord
 
   return;
 
+}
+
+/**
+ * update card on file callback.
+ */
+function commerce_dps_pxpost_cardonfile_update($payment_method, $card_data, $order, $charge = NULL) {
+  dpm(func_get_args(), 'args');
+}
+
+/**
+ * Delete card on file callback.
+ */
+function commerce_dps_pxpost_cardonfile_delete($payment_method, $card_data, $order, $charge = NULL) {
+  dpm(func_get_args(), 'args');
+  return TRUE;
 }

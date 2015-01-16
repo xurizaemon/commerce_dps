@@ -132,6 +132,10 @@ function commerce_dps_pxpay_process_response($transaction) {
  * @return void
  */
 function commerce_dps_pxpay_order_transaction($order, $payment, $status){
+  watchdog('commerce_dps_pxpay', 'Payment: <pre>!payment</pre>', array('!payment' => print_r($payment,1)), WATCHDOG_DEBUG);
+  watchdog('commerce_dps_pxpay', 'Order: <pre>!order</pre>', array('!order' => print_r($order,1)), WATCHDOG_DEBUG);
+  dpm($order, 'order');
+  dpm($payment, 'payment');
   // Create a new payment transaction for the order.
   $transaction = commerce_payment_transaction_new('commerce_dps_pxpay', $order->order_id);
   $transaction->instance_id = 'dps_pxpay';
