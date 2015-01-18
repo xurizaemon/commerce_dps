@@ -32,17 +32,54 @@ function commerce_dps_pxpay_menu() {
  * Implements hook_commerce_payment_method_info().
  */
 function commerce_dps_pxpay_commerce_payment_method_info() {
-  return array(
-    'commerce_dps_pxpay' => array(
-      'title' => t('Commerce Payment Express (PxPay)'),
-      'short_title' => t('DPS'),
-      'display_title' => t('Credit card'),
-      'description' => t('Provides integration with the DPS PxPay payment gateway.'),
-      'terminal' => FALSE,
-      'offsite' => TRUE,
-      'active' => TRUE,
+  $payment_methods = array();
+  $payment_methods['commerce_dps_pxpay'] = array(
+    // Translatable full title of the payment method, used in
+    // administrative interfaces.
+    'title' => t('Commerce Payment Express (PxPay)'),
+    // Abbreviated title that may simply include the payment
+    // provider’s name as it makes sense to the customer (i.e. you
+    // would display PayPal, not PayPal WPS to a customer); defaults
+    // to the title.
+    'short_title' => t('DPS'),
+    // Title to display on forms where the payment method is selected
+    // and may include HTML for methods that require images and
+    // special descriptions; defaults to the title.
+    'display_title' => t('Credit card'),
+    // Translatable description of the payment method, including the
+    // nature of the payment and the payment gateway that actually
+    // captures the payment.
+    'description' => t('Provides integration with the DPS PxPay payment gateway.'),
+    // Whether the default payment method rule configuration for this
+    // payment method should be enabled by default.
+    'active' => FALSE,
+    // Whether payments can be processed via this payment method
+    // through the administrative payment terminal on an order’s
+    // Payment tab.
+    'terminal' => FALSE,
+    // Whether the customer must be redirected offsite to put in their
+    // payment information; used specifically by the Off-site payment
+    // redirect checkout pane.
+    'offsite' => TRUE,
+    // Whether to automatically redirect the user offsite.
+    'offsite_autoredirect' => TRUE,
+    // Returns elements that should be submitted to the redirected
+    // payment service; because of the array merge that happens upon
+    // return, the service’s URL that should receive the POST
+    // variables should be set in the #action property of the returned
+    // form array
+    'redirect_form' => 'commerce_dps_pxpay_redirect_form',
+    // Callbacks are automatically set using default method format,
+    // see URL in function comment for details.
+    //
+    // Card on File callbacks.
+    'cardonfile' => array(
+      'charge callback' => 'commerce_dps_pxpay_cardonfile_charge',
+      'update callback' => 'commerce_dps_pxpay_cardonfile_update',
+      'delete callback' => 'commerce_dps_pxpay_cardonfile_delete',
     ),
   );
+  return $payment_methods;
 }
 
 /**
@@ -200,7 +237,23 @@ function commerce_dps_pxpay_order_form($form, &$form_state, $order, $settings) {
   drupal_alter('commerce_dps_pxpay_transaction_data', $transaction, $order, $settings);
 
   if ($url = commerce_dps_pxpay_generate_request($transaction)) {
-    drupal_goto($url);
+    // drupal_goto($url);
+    // Compose a non-FAPI button which submits offsite.
+    $parts = parse_url($url);
+    $form['#action'] = $parts['scheme'] . '://' . $parts['host'] . $parts['path'];
+    $form['#method'] = 'get';
+    parse_str($parts['query'], $data);
+    foreach ($data as $name => $value) {
+      $form[$name] = array(
+        '#type' => 'hidden',
+        '#value' => $value,
+      );
+    }
+    $form['submit'] = array(
+      '#type' => 'submit',
+      '#value' => t('Proceed to DPS'),
+    );
+    return $form;
   }
   else {
     watchdog('commerce_dps_pxpay', 'Unable to generate DPS request with settings: @settings', array('@settings' => print_r($settings, 1)), WATCHDOG_DEBUG);
