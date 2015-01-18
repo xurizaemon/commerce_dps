@@ -320,6 +320,9 @@ function commerce_dps_pxpay_order_form($form, &$form_state, $order, $settings) {
     'add_bill_card' => $cardonfile,
   );
 
+  // Allow modules to alter parameters of the API request.
+  drupal_alter('commerce_dps_pxpay_transaction_data', $transaction, $order, $settings);
+
   if ($url = commerce_dps_pxpay_generate_request($transaction)) {
     drupal_goto($url);
   }
