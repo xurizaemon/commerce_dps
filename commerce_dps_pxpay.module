@@ -36,12 +36,12 @@ function commerce_dps_pxpay_commerce_payment_method_info() {
   $payment_methods['commerce_dps_pxpay'] = array(
     // Translatable full title of the payment method, used in
     // administrative interfaces.
-    'title' => t('Commerce Payment Express (PxPay)'),
+    'title' => t('DPS Payment Express PX Pay'),
     // Abbreviated title that may simply include the payment
     // provider’s name as it makes sense to the customer (i.e. you
     // would display PayPal, not PayPal WPS to a customer); defaults
     // to the title.
-    'short_title' => t('DPS'),
+    'short_title' => t('Payment Express'),
     // Title to display on forms where the payment method is selected
     // and may include HTML for methods that require images and
     // special descriptions; defaults to the title.
@@ -49,7 +49,7 @@ function commerce_dps_pxpay_commerce_payment_method_info() {
     // Translatable description of the payment method, including the
     // nature of the payment and the payment gateway that actually
     // captures the payment.
-    'description' => t('Provides integration with the DPS PxPay payment gateway.'),
+    'description' => t('Provides integration with the DPS Payment Express PX Pay payment gateway.'),
     // Whether the default payment method rule configuration for this
     // payment method should be enabled by default.
     'active' => FALSE,
@@ -83,80 +83,91 @@ function commerce_dps_pxpay_commerce_payment_method_info() {
 }
 
 /**
- * Implements hook_form_alter().
+ * Implements hook_form_FORM_ID_alter() for
+ * 'commerce_checkout_form_review'. Doesn't fire.
+ */
+function commerce_dps_pxpay_form_commerce_checkout_form_review_alter(&$form, $form_state, $form_id) {
+  array_unshift($form['buttons']['continue']['#submit'], 'commerce_dps_pxpay_form_commerce_checkout_form_review_continue_button_submit');
+}
+
+/**
+ * Injected submit callback for Order Review form's Continue button.
  *
- * Just here for debugging. The issue is that when we're already in
- * commerce_dps_pxpay_redirect_form submit phase, we don't seem to
- * have the form values ... which we need to select CC to charge.
+ * When commerce_dps_pxpay_redirect_form is generating order redirect
+ * form, form values submitted from the review screen (??) are not
+ * available. If the user selected an existing card we need to fire
+ * the transaction and skip redirect.
+ *
+ * Storing in the order feels wrong since we might be seeing a second
+ * transaction attempt on the same order, would be nice to clean this
+ * up a bit.
+ *
+ * @see https://www.drupal.org/node/2410503
+ *
  */
-function commerce_dps_pxpay_form_alter(&$form, &$form_state, $form_id) {
-  dpm($form_id, 'form_id');
-  switch ($form_id) {
-    case 'commerce_checkout_form_complete':
-      dpm($form, 'checkout_form_complete');
-      break;
+function commerce_dps_pxpay_form_commerce_checkout_form_review_continue_button_submit(&$form, &$form_state) {
+  // Obtain payment method and instance.
+  list($payment_method, $rule_name) = explode('|', $form_state['values']['commerce_payment']['payment_method']);
+
+  if ($payment_method == 'commerce_dps_pxpay') {
+    // Check a submitted cardonfile value; confirms payment
+    // processor selected is CoF enabled etc.
+    if (isset($form_state['values']['commerce_payment']['payment_details']['cardonfile'])) {
+      $selected_card = $form_state['values']['commerce_payment']['payment_details']['cardonfile'];
+      // Check we have $order in the expected location.
+      if (isset($form_state['build_info']['args'][0]->type) && $form_state['build_info']['args'][0]->type == 'commerce_order') {
+        // Obtain order details.
+        $order = $form_state['build_info']['args'][0];
+        $wrapper = entity_metadata_wrapper('commerce_order', $order);
+        $charge = commerce_line_items_total($wrapper->commerce_line_items);
+        // Set up transaction to process.
+        $transaction = commerce_payment_transaction_new($payment_method, $order->order_id);
+        $transaction->amount = $charge['amount'];
+        $transaction->currency_code = $charge['currency_code'];
+        $transaction->status = COMMERCE_PAYMENT_STATUS_PENDING;
+        $transaction->instance_id = $form_state['values']['commerce_payment']['payment_method'];
+        $transaction->data['cardonfile_selected'] =
+          $form_state['values']['commerce_payment']['payment_details']['cardonfile'];
+        commerce_payment_transaction_save($transaction);
+        // Record pending transaction against order.
+        $order->data['commerce_dps_pxpay']['cardonfile_transaction'] = $transaction;
+        commerce_order_save($order);
+      }
+    }
   }
-}
-
-/**
- * Implements hook_form_FORM_ID_alter() for
- * 'commerce_checkout_form_review'. Doesn't fire.
- */
-function commerce_dps_pxpay_form_commerce_checkout_form_complete_alter() {
- $form['#validate'][] = 'commerce_dps_pxpay_form_commerce_checkout_form_complete_xxx';
-  watchdog('commerce_dps_pxpay', 'commerce_dps_pxpay_form_commerce_checkout_form_complete_alter');
-  dpm(func_get_args(), 'argds');
-}
-
-/**
- * Implements hook_form_FORM_ID_alter() for
- * 'commerce_checkout_form_review'. Doesn't fire.
- */
-function commerce_dps_pxpay_form_commerce_checkout_form_review_alter() {
- $form['#validate'][] = 'commerce_dps_pxpay_form_commerce_checkout_form_review_xxx';
- watchdog('commerce_dps_pxpay', 'commerce_dps_pxpay_form_commerce_checkout_form_review_alter');
-  dpm(func_get_args(), 'argds');
-// die('x');
-}
-
-/**
- * Custom validate handler for commerce_checkout_form_review.
- */
-function commerce_dps_pxpay_form_commerce_checkout_form_review_xxx() {
-  dpm(func_get_args(), 'xx');
-  watchdog('commerce_dps_pxpay', 'commerce_dps_pxpay_form_commerce_checkout_form_complete_xxx');
-}
-
-/**
- * Autogenerated validate handler for 'commerce_checkout_form_review'.
- */
-function commerce_dps_pxpay_form_commerce_checkout_form_review_validate() {
-  watchdog('commerce_dps_pxpay', 'commerce_dps_pxpay_form_commerce_checkout_form_review_validate');
-  dpm(func_get_args(), 'def');
 }
 
 /**
  * Drupal Commerce redirect_form callback.
  */
 function commerce_dps_pxpay_redirect_form($form, &$form_state, $order, $payment_method) {
-  // commerce_dps_pxpay_cardonfile_charge($payment_method, $card_data, $order, $charge);
-  dpm($_POST, 'post');
-  dpm($form, 'form');
-  dpm($form_state, 'fstate');
-  dpm($order, 'order');
-  dpm($settings, 'settings');
-  dpm(func_get_args(), 'args');
-
   // Return error if DPS payment gateway userid and key unconfigured.
   if (empty($payment_method['settings']['commerce_dps_pxpay_userid']) ||
-    empty($payment_method['settings']['commerce_dps_pxpay_key'])
-  ) {
+    empty($payment_method['settings']['commerce_dps_pxpay_key'])) {
     drupal_set_message(t('The DPS payment gateway cannot be used at this time'), 'error');
     return array();
   }
 
+  // If Card on File enabled, configured and selected, use that to
+  // shortcut the redirect checkout.
+  if (module_exists('commerce_cardonfile') && $payment_method['settings']['cardonfile']) {
+    if (isset($order->data['commerce_dps_pxpay']['cardonfile_transaction']->data['cardonfile_selected'])) {
+      $card_data = commerce_cardonfile_load($order->data['commerce_dps_pxpay']['cardonfile_transaction']->data['cardonfile_selected']);
+      $wrapper = entity_metadata_wrapper('commerce_order', $order);
+      $charge = commerce_line_items_total($wrapper->commerce_line_items);
+      if (commerce_dps_pxpay_cardonfile_charge($payment_method, $card_data, $order)) {
+        commerce_payment_redirect_pane_next_page($order);
+        drupal_goto(commerce_checkout_order_uri($order));
+      }
+      else {
+        drupal_set_message('Unable to process transaction via stored card, redirecting to DPS for payment.', 'error');
+        watchdog('commerce_dps_pxpay', 'Attempt at billing via PX Post Token Billing failed.', array(), WATCHDOG_NOTICE);
+      }
+    }
+  }
+
   $settings = array(
-    // Return to the previous page when payment is canceled.
+    // Return to the previous page when payment is cancelled.
     'cancel_return' => url('checkout/' . $order->order_id . '/payment/back/' . $order->data['payment_redirect_key'], array('absolute' => TRUE)),
     // Return to the payment redirect page for processing successful payments.
     'return' => url('checkout/' . $order->order_id . '/dps_pxpay_fprn/' . $order->data['payment_redirect_key'], array('absolute' => TRUE)),
@@ -185,6 +196,8 @@ function commerce_dps_pxpay_settings_form($settings = NULL) {
     'commerce_dps_pxpay_log_transactions' => 0,
     'cardonfile' => FALSE,
     'continuous' => FALSE,
+    'pxpost_username' => '',
+    'pxpost_password' => '',
   );
 
   $form['commerce_dps_pxpay_userid'] = array(
@@ -243,11 +256,17 @@ function commerce_dps_pxpay_settings_form($settings = NULL) {
       '#default_value' => $settings['cardonfile'],
     );
 
-    $form['continuous'] = array(
-      '#type' => 'checkbox',
-      '#title' => t('Use continuous authority transactions.'),
-      '#description' => t('A continuous authority merchant account will be required.'),
-      '#default_value' => $settings['continuous'],
+    $form['pxpost_username'] = array(
+      '#type' => 'textfield',
+      '#title' => t('PX Post Username'),
+      '#description' => t('Processing Card on File transactions requires PX Post credentials to submit token billing requests.'),
+      '#default_value' => $settings['pxpost_username'],
+    );
+
+    $form['pxpost_password'] = array(
+      '#type' => 'password',
+      '#title' => t('PX Post Password'),
+      '#default_value' => $settings['pxpost_password'],
     );
   }
   else {
@@ -276,7 +295,6 @@ function commerce_dps_pxpay_settings_form($settings = NULL) {
  * Payment method callback: checkout form.
  */
 function commerce_dps_pxpay_submit_form($payment_method, $pane_values, $checkout_pane, $order) {
-  dpm(func_get_args(), 'args');
   $pxlogo_args = array(
     'path' => drupal_get_path('module', 'commerce_dps_pxpay') . '/images/dps_paymentexpress_small.png',
     'alt' => t('DPS - Payment Gateway by Payment Express.'),
@@ -300,7 +318,14 @@ function commerce_dps_pxpay_order_form($form, &$form_state, $order, $settings) {
 
   $cardonfile_capable = module_exists('commerce_cardonfile') && !empty($settings['cardonfile']);
 
+  // Injected submit hook for Review continue button sets a card ID if
+  // we need to re-use an existing card.
+  if (isset($order->data['commerce_dps_pxpay'])) {
+
+  }
+
   $wrapper = entity_metadata_wrapper('commerce_order', $order);
+
   $amount = $wrapper->commerce_order_total->amount->value();
   $currency_code = $wrapper->commerce_order_total->currency_code->value();
   $amount = commerce_currency_amount_to_decimal($amount, $currency_code);
@@ -323,9 +348,7 @@ function commerce_dps_pxpay_order_form($form, &$form_state, $order, $settings) {
   );
 
   // Allow modules to alter parameters of the API request.
-  dpm($transaction, 'transaction');
   drupal_alter('commerce_dps_pxpay_transaction_data', $transaction, $order, $settings);
-  dpm($transaction, 'transaction');
 
   if ($url = commerce_dps_pxpay_generate_request($transaction)) {
     // drupal_goto($url);
@@ -480,15 +503,25 @@ function commerce_dps_pxpay_fprn_process($order, &$payment, $settings) {
 }
 
 /**
- * Card on file callback: deletes the associated customer payment profile.
- *
- * AFAIK PX doesn't offer a means to update the billing ID remotely,
- * so we just return TRUE to give commerce_cardonfile OK to delete
- * the card data locally.
+ * Card on file callback: charge the associated customer payment
+ * profile using PX Post.
  */
 function commerce_dps_pxpay_cardonfile_charge($payment_method, $card_data, $order, $charge = NULL) {
-  dpm(func_get_args(), 'args');
-  return TRUE;
+  module_load_include('module', 'commerce_dps_pxpay', 'commerce_dps_pxpost');
+
+  // Copy the PX Post details to set up the settings array, use PX
+  // Post charge callback.
+  if (!empty($payment_method['settings']['pxpost_username']) &&
+    !empty($payment_method['settings']['pxpost_username'])) {
+    $payment_method['settings'] += array(
+      'username' => $payment_method['settings']['pxpost_username'],
+      'password' => $payment_method['settings']['pxpost_password'],
+      'reference_prefix' => $payment_method['settings']['commerce_dps_pxpay_refprefix'],
+      'log_transactions' => $payment_method['settings']['commerce_dps_pxpay_log_transactions'],
+      'server' => COMMERCE_DPS_PXPOST_SERVER,
+    );
+    return commerce_dps_pxpost_cardonfile_charge($payment_method, $card_data, $order);
+  }
 }
 
 /**

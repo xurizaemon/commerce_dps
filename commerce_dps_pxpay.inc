@@ -132,10 +132,6 @@ function commerce_dps_pxpay_process_response($transaction) {
  * @return void
  */
 function commerce_dps_pxpay_order_transaction($order, $payment, $status){
-  watchdog('commerce_dps_pxpay', 'Payment: <pre>!payment</pre>', array('!payment' => print_r($payment,1)), WATCHDOG_DEBUG);
-  watchdog('commerce_dps_pxpay', 'Order: <pre>!order</pre>', array('!order' => print_r($order,1)), WATCHDOG_DEBUG);
-  dpm($order, 'order');
-  dpm($payment, 'payment');
   // Create a new payment transaction for the order.
   $transaction = commerce_payment_transaction_new('commerce_dps_pxpay', $order->order_id);
   $transaction->instance_id = 'dps_pxpay';
@@ -177,30 +173,25 @@ function commerce_dps_pxpay_order_transaction($order, $payment, $status){
         $payment_method = commerce_payment_method_instance_load($order->data['payment_method']);
       }
 
-      // If we didn't find any, store the details.
-//      if (empty($stored_cards)) {
-        $card_data = commerce_cardonfile_new();
-        $card_data->uid = $order->uid;
-        $card_data->payment_method = $payment_method['method_id'];
-        $card_data->instance_id = $payment_method['instance_id'];
-        $card_data->remote_id = $payment['DpsBillingId'];
-        $card_data->card_type = !empty($card_type) ? $card_type : 'card';
-        $card_data->card_name = $payment['CardHolderName'];
-        $card_data->card_number = substr($payment['CardNumber'], -4, 4);
-        $card_data->card_exp_month = substr($payment['DateExpiry'], 0, 2);
-        $card_data->card_exp_year = '20' . substr($payment['DateExpiry'], 2, 4);
-        $card_data->status = 1;
+      if (!empty($stored_cards)) {
+        // @TODO: Iterate through stored cards, remove any with
+        // matching details but differing BillingId.
+      }
+      // Store the card details.
+      $card_data = commerce_cardonfile_new();
+      $card_data->uid = $order->uid;
+      $card_data->payment_method = $payment_method['method_id'];
+      $card_data->instance_id = $payment_method['instance_id'];
+      $card_data->remote_id = $payment['DpsBillingId'];
+      $card_data->card_type = !empty($card_type) ? $card_type : 'card';
+      $card_data->card_name = $payment['CardHolderName'];
+      $card_data->card_number = substr($payment['CardNumber'], -4, 4);
+      $card_data->card_exp_month = substr($payment['DateExpiry'], 0, 2);
+      $card_data->card_exp_year = '20' . substr($payment['DateExpiry'], 2, 4);
+      $card_data->status = 1;
 
-        watchdog('commerce_dps_pxpay', 'Card Data: <pre>!card_data</pre>', array('!card_data' => print_r($card_data,1)), WATCHDOG_DEBUG);
-
-        // Save and log the creation of the new card on file.
-        commerce_cardonfile_save($card_data);
-        watchdog('commerce_dps_pxpost', 'Card data: <pre>!card_data</pre>', array('!card_data' => print_r($card_data,1)), WATCHDOG_DEBUG);
-        watchdog('commerce_dps_pxpost', 'DPS Billing ID @billing_id created and saved to user @uid.', array('@profile_id' => $billing_id, '@uid' => $order->uid));
-        //}
-        //else {
-        //  watchdog('commerce_dps_pxpost', 'Stored cards: <pre>!cards</pre>', array('!cards' => print_r($stored_cards,1)), WATCHDOG_DEBUG);
-        //}
+      // Save and log the creation of the new card on file.
+      commerce_cardonfile_save($card_data);
     }
   }
 
