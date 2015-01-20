@@ -9,7 +9,6 @@ define('COMMERCE_DPS_PXPOST_USERNAME', 'PXPOSTUSERNAME');
 define('COMMERCE_DPS_PXPOST_PASSWORD', '');
 define('COMMERCE_DPS_PXPOST_SERVER', 'https://sec.paymentexpress.com/pxpost.aspx');
 define('COMMERCE_DPS_PXPOST_CURRENCY', 'NZD');
-define('COMMERCE_DPS_PXPOST_CANCEL_RETURN_URL', 'cart');
 define('COMMERCE_DPS_PXPOST_REFERENCE_PREFIX', 'Website Order');
 
 /**
@@ -168,19 +167,13 @@ function commerce_dps_pxpost_settings_form($settings = NULL) {
     '#default_value' => $settings['currency'],
   );
 
-  $form['cancel_return_url'] = array(
-    '#type' => 'textfield',
-    '#title' => t('Cancel return URL'),
-    '#description' => t('Specify the path customers who cancel their DPS PxPost payment will be directed to when they return to your site.'),
-    '#default_value' => $settings['cancel_return_url'],
-    '#size' => 32,
-    '#field_prefix' => url(NULL, array('absolute' => TRUE)) . (variable_get('clean_url', 0) ? '' : '?q='),
-  );
-
+  // A hook is available to modify this in transit if you need
+  // something more complicated; see
+  // https://www.drupal.org/node/1848344
   $form['reference_prefix'] = array(
     '#type' => 'textfield',
     '#title' => t('Merchant Reference Prefix'),
-    '#description' => t('Added before order number sent to DPS, ie Website Order #1234'),
+    '#description' => t('Prefix to order number reference at DPS, eg "Website Order #1234."'),
     '#default_value' => $settings['reference_prefix'],
     '#required' => TRUE,
   );
