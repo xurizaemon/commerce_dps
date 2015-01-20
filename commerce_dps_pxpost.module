@@ -178,20 +178,13 @@ function commerce_dps_pxpost_settings_form($settings = NULL) {
     '#required' => TRUE,
   );
 
-  // Card On File support requires the Card on File module.
+  // Card on File support requires the Card on File module.
   if (module_exists('commerce_cardonfile')) {
     $form['cardonfile'] = array(
       '#type' => 'checkbox',
       '#title' => t('Enable Card on File functionality with this payment method.'),
       '#description' => t('This requires your DPS account to have AddBillCard support enabled.'),
       '#default_value' => $settings['cardonfile'],
-    );
-
-    $form['continuous'] = array(
-      '#type' => 'checkbox',
-      '#title' => t('Use continuous authority transactions.'),
-      '#description' => t('A continuous authority merchant account will be required.'),
-      '#default_value' => $settings['continuous'],
     );
   }
   else {
@@ -340,19 +333,6 @@ function commerce_dps_pxpost_submit_form_submit($payment_method, $pane_form, $pa
     $txn_type = $pane_values['txn_type'];
   }
 
-  // If we have a customer billing profile, load it to get the
-  // CardHolderName. Or we could add an additional field to request
-  // it.
-  $cardholder_name = '';
-/*
-  if (module_exists('commerce_customer')) {
-    $field_name = variable_get('commerce_customer_profile_billing_field', '');
-    if (isset($order_wrapper->{$field_name}->commerce_customer_address->name_line)) {
-      $cardholder_name = $order_wrapper->{$field_name}->commerce_customer_address->name_line->value();
-    }
-  }
-*/
-
   // By default we don't set EnableAddBillCard with DPS.
   $addbillcard = FALSE;
   // Unless Card on File is enabled and the form says to store it.
@@ -361,7 +341,8 @@ function commerce_dps_pxpost_submit_form_submit($payment_method, $pane_form, $pa
     $addbillcard = TRUE;
   }
 
-  // Prepare a card holder name for use in the request.
+  // Prepare a card holder name for use in the request. According to
+  // DPS docs, the cardHolderName value is not validated.
   if ($order_wrapper->commerce_customer_billing->value()){
     $billing_address = $order_wrapper->commerce_customer_billing->commerce_customer_address->value();
     if (!empty($billing_address['name_line'])) {
@@ -455,7 +436,6 @@ function commerce_dps_pxpost_submit_form_submit($payment_method, $pane_form, $pa
 
   if ($payment_method['settings']['log_transactions']) {
     watchdog('commerce_dps_pxpost', 'PxPost result (@code) from @server: <pre>@data</pre>', array('@code' => trim($result->code . ' ' . $result->status_message), '@data' => $result->data, '@server' => $payment_method['settings']['server']), WATCHDOG_DEBUG);
-
   }
 
   // Prepare a transaction object to log the API response.
@@ -581,7 +561,6 @@ function commerce_dps_pxpost_submit_form_submit_cardonfile($payment_method, $pan
     drupal_set_message(t('The requested card on file is no longer valid.'), 'error');
     return FALSE;
   }
-
   return commerce_dps_pxpost_cardonfile_charge($payment_method, $card_data, $order, $charge);
 }
 

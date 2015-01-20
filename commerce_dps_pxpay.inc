@@ -61,7 +61,7 @@ function commerce_dps_pxpay_generate_request($transaction) {
     if ($xml = simplexml_load_string($response->data)) {
       foreach ($xml->attributes() as $attribute => $value) {
         if ($attribute == 'valid' && $value == '1') {
-          return $xml->URI;
+          return (string)$xml->URI;
         }
         else {
           watchdog('commerce_dps_pxpay',
@@ -101,7 +101,8 @@ function commerce_dps_pxpay_process_response($transaction) {
     watchdog('commerce_dps_pxpay', 'ProcessResponse response: HTTP @code, <pre>@xml</pre>', array('@code' => $response->code, '@xml' => $response->data), WATCHDOG_DEBUG);
   }
 
-  // If response XML from PX Pay is good, extract and return transaction data.
+  // If response XML from PX Pay is good, extract and return
+  // transaction data.
   if ($response->code == 200) {
     $xml = simplexml_load_string($response->data);
     // Build data array.
@@ -113,9 +114,6 @@ function commerce_dps_pxpay_process_response($transaction) {
           $data[$child->getName()] = (string) $child;
         }
         return $data;
-      }
-      else {
-        // @TODO: Send to watchdog.
       }
     }
   }

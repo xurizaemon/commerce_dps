@@ -151,7 +151,7 @@ function commerce_dps_pxpay_redirect_form($form, &$form_state, $order, $payment_
 
   // If Card on File enabled, configured and selected, use that to
   // shortcut the redirect checkout.
-  if (module_exists('commerce_cardonfile') && $payment_method['settings']['cardonfile']) {
+  if (module_exists('commerce_cardonfile') && isset($payment_method['settings']['cardonfile']) && $payment_method['settings']['cardonfile']) {
     if (isset($order->data['commerce_dps_pxpay']['cardonfile_transaction']->data['cardonfile_selected'])) {
       $card_data = commerce_cardonfile_load($order->data['commerce_dps_pxpay']['cardonfile_transaction']->data['cardonfile_selected']);
       $wrapper = entity_metadata_wrapper('commerce_order', $order);
