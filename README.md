@@ -1,56 +1,58 @@
-Commerce DPS
-============
+# Commerce DPS
 
 [Commerce DPS](http://drupal.org/project/commerce_dps) integrates DPS
 (aka PaymentExpress) with Drupal Commerce payment and checkout system.
 
-Available Payment Methods
-=========================
+## Features
 
-Currently PxPay (payment via redirect to DPS-hosted page) is
-available. Please file an issue or contact the author
-(chris@fuzion.co.nz) to have additional methods implemented.
+Commerce DPS supports both merchant and gateway hosted billing methods, and token billing
+([in progress](https://drupal.org/node/2397663)).
 
-Installation
-============
+## Available Payment Methods
 
-1. Download latest module from http://drupal.org/project/commerce_dps
+### PX Pay
 
-2. Enable Commerce DPS PxPay module as usual: /admin/modules
+[PX Pay](https://www.paymentexpress.com/Products/Ecommerce/Payment_Express_Hosted) is a 
+payment solution hosted by Payment Express; your site won't see credit card details so
+you have less requirements for compliance. It's safer and simpler to implement.
 
-Configuration
-=============
+### PX Post
 
-1. Obtain your DPS PxPay credentials
+[PX Post](https://www.paymentexpress.com/Technical_Resources/Ecommerce_NonHosted/PxPost) 
+is a payment solution you host on your site. Credit cards are entered at checkout on your
+site. You need to check with your bank whether they permit merchant-hosted checkout.
 
-2. Visit the Commerce Payment Methods page at admin/commerce/config/payment-methods
+## Installation & Configuration
 
-3. Edit the Commerce Payment Express (PxPay) method and configure accordingly.
+1. Download from [Commerce DPS project page](http://drupal.org/project/commerce_dps)
+2. Enable the payment processor(s) you wish to use.
+3. Visit the Commerce Payment Methods page at admin/commerce/config/payment-methods
+4. Enable and edit the payment methods you require.
 
-Troubleshooting
-===============
+Pretty much all the details required in the configuration interface are obtained from
+Payment Express. If the inline documentation isn't clear, please file an issue and help
+improve the interface!
 
-For any questions, the first point of reference should be the issue
-queue on Drupal.org. Please use the search interface provided to see
-if your problem has been fixed or is currently being worked on, and if
-not create a new issue to discuss it.
+## Troubleshooting
 
-Always check your site error logs (both webserver and Drupal logs) and
-give detail when making a report.
+
+For any questions, the first point of reference should be the issue queue on Drupal.org. 
+Please use the search interface provided to see if your problem has been fixed or is 
+currently being worked on, and if not create a new issue to discuss it.
+
+Always check your site error logs (both webserver and Drupal logs) and give detail when
+making a report.
 
 Documentation fixes are welcome!
 
-FAQ
-===
+## Contributing
 
-Q: I get mysterious validation errors!
+We prefer that you use the Drupal.org issue queue, but contributions are welcome via
+Github also.
 
-A: If your Drupal logs direct you to issue #1799294, you may be
-   running into issues with Suhosin's default configuration preventing
-   the DPS response being recognised by Drupal. This requires some
-   webserver configuration to resolve.
+## Credits
 
-Credits
-=======
-Commerce DPS integration has been written by [Chris Burgess](https://drupal.org/user/76026) 
-and many contributors via Drupal.org.
+* The Commerce DPS maintainer is [Chris Burgess](https://drupal.org/user/76026)
+* [Committers to Commerce DPS](https://www.drupal.org/node/1496210/committers)
+* Payment Express team, for providing a solid and professional merchant service!
+* Thanks also to those who have reported issues, made suggestions or sponsored work.
