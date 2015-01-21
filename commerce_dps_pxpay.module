@@ -114,24 +114,27 @@ function commerce_dps_pxpay_form_commerce_checkout_form_review_continue_button_s
     // processor selected is CoF enabled etc.
     if (isset($form_state['values']['commerce_payment']['payment_details']['cardonfile'])) {
       $selected_card = $form_state['values']['commerce_payment']['payment_details']['cardonfile'];
-      // Check we have $order in the expected location.
-      if (isset($form_state['build_info']['args'][0]->type) && $form_state['build_info']['args'][0]->type == 'commerce_order') {
-        // Obtain order details.
-        $order = $form_state['build_info']['args'][0];
-        $wrapper = entity_metadata_wrapper('commerce_order', $order);
-        $charge = commerce_line_items_total($wrapper->commerce_line_items);
-        // Set up transaction to process.
-        $transaction = commerce_payment_transaction_new($payment_method, $order->order_id);
-        $transaction->amount = $charge['amount'];
-        $transaction->currency_code = $charge['currency_code'];
-        $transaction->status = COMMERCE_PAYMENT_STATUS_PENDING;
-        $transaction->instance_id = $form_state['values']['commerce_payment']['payment_method'];
-        $transaction->data['cardonfile_selected'] =
-          $form_state['values']['commerce_payment']['payment_details']['cardonfile'];
-        commerce_payment_transaction_save($transaction);
-        // Record pending transaction against order.
-        $order->data['commerce_dps_pxpay']['cardonfile_transaction'] = $transaction;
-        commerce_order_save($order);
+      if ($selected_card != 'new') {
+        // Check we have $order in the expected location.
+        if (isset($form_state['build_info']['args'][0]->type) && $form_state['build_info']['args'][0]->type == 'commerce_order') {
+          // Obtain order details.
+          $order = $form_state['build_info']['args'][0];
+          $wrapper = entity_metadata_wrapper('commerce_order', $order);
+          $charge = commerce_line_items_total($wrapper->commerce_line_items);
+          // Set up transaction to process.
+          $transaction = commerce_payment_transaction_new($payment_method, $order->order_id);
+          $transaction->amount = $charge['amount'];
+          $transaction->currency_code = $charge['currency_code'];
+          $transaction->status = COMMERCE_PAYMENT_STATUS_PENDING;
+          $transaction->instance_id = $form_state['values']['commerce_payment']['payment_method'];
+          $transaction->data['cardonfile_selected'] =
+            $form_state['values']['commerce_payment']['payment_details']['cardonfile'];
+          $transaction->data['debug'] = __FILE__ . '@' . (__LINE__+1);
+          commerce_payment_transaction_save($transaction);
+          // Record pending transaction against order.
+          $order->data['commerce_dps_pxpay']['cardonfile_transaction'] = $transaction;
+          commerce_order_save($order);
+        }
       }
     }
   }
@@ -510,6 +513,17 @@ function commerce_dps_pxpay_fprn_process($order, &$payment, $settings) {
  */
 function commerce_dps_pxpay_cardonfile_charge($payment_method, $card_data, $order, $charge = NULL) {
   module_load_include('module', 'commerce_dps_pxpay', 'commerce_dps_pxpost');
+
+  // Clean up temporary transaction(s) associated with Card on File.
+  $transactions = commerce_payment_transaction_load_multiple(array(), array('order_id' => $order->order_id, 'payment_method' => 'commerce_dps_pxpay'));
+  foreach ($transactions as $transaction_id => $transaction) {
+    // Check is probably redundant, since else we shouldn't be here.
+    if ($transaction->instance_id == $payment_method['instance_id']) {
+      if (isset($transaction->data['cardonfile_selected']) && $transaction->data['cardonfile_selected'] == $card_data->card_id) {
+        commerce_payment_transaction_delete($transaction_id);
+      }
+    }
+  }
 
   // Copy the PX Post details to set up the settings array, use PX
   // Post charge callback.

@@ -96,7 +96,6 @@ function commerce_dps_pxpost_default_settings() {
     'password' => COMMERCE_DPS_PXPOST_PASSWORD,
     'server' => COMMERCE_DPS_PXPOST_SERVER,
     'currency' => COMMERCE_DPS_PXPOST_CURRENCY,
-    'cancel_return_url' => COMMERCE_DPS_PXPOST_CANCEL_RETURN_URL,
     'reference_prefix' => COMMERCE_DPS_PXPOST_REFERENCE_PREFIX,
     'txn_type' => COMMERCE_CREDIT_AUTH_CAPTURE,
     'log_transactions' => 0,
@@ -309,7 +308,7 @@ function commerce_dps_pxpost_submit_form_submit($payment_method, $pane_form, $pa
     if ($prevent_transaction) {
       // Create a transaction to log the skipped transaction and display a
       // helpful message to the customer.
-      $transaction = commerce_payment_transaction_new('authnet_aim', $order->order_id);
+      $transaction = commerce_payment_transaction_new('dps_pxpost', $order->order_id);
       $transaction->amount = $charge['amount'];
       $transaction->currency_code = $charge['currency_code'];
       $transaction->status = COMMERCE_PAYMENT_STATUS_FAILURE;
@@ -475,25 +474,32 @@ function commerce_dps_pxpost_submit_form_submit($payment_method, $pane_form, $pa
         }
       }
       // Store the type of transaction in the remote status.
-      $transaction->remote_status = "{$xml->TxnType}";
+      $transaction->remote_status = "{$xml->Transaction->TxnType}";
     }
   }
 
   // Build a meaningful response message.
   $message = array(
-    '<b>' . commerce_dps_reverse_txn_type((string)$xml->TxnType) . '</b>',
-    '<b>' . ($success != '1' ? t('REJECTED') : t('ACCEPTED')) . ':</b> ' . check_plain((string)$xml->Transaction->MerchantHelpText),
+    'Txn Type: @txn_type',
+    'Status: @status',
+    'Detail: @detail',
   );
-
   // Add the CVV response if enabled.
   if (isset($txn->Cvc2)) {
-    $message[] = t('CVV match: @cvv', array('@cvv' => (string)$xml->Transaction->Cvc2ResultCode));
+    $message[] = 'CVV match: @cvv_result';
   }
 
   $transaction->message = implode('<br />', $message);
+  $transaction->message_variables = array(
+    '@txn_type' => commerce_dps_reverse_txn_type((string)$xml->Transaction->TxnType),
+    '@status' => ($success != '1' ? t('REJECTED') : t('ACCEPTED')),
+    '@detail' => check_plain((string)$xml->Transaction->MerchantHelpText),
+    '@cvv_result' => (string)$xml->Transaction->Cvc2ResultCode,
+  );
 
   // Save the transaction information.
   commerce_payment_transaction_save($transaction);
+  commerce_order_save($order);
 
   // If the payment failed, display an error and rebuild the form.
   if ($success != '1') {
@@ -550,7 +556,7 @@ function commerce_dps_pxpost_submit_form_submit($payment_method, $pane_form, $pa
 }
 
 /**
- * Imitates the checkout form submission callback for the AIM payment method.
+ * Imitates the checkout form submission callback for the PX Post payment method.
  */
 function commerce_dps_pxpost_submit_form_submit_cardonfile($payment_method, $pane_form, $pane_values, $order, $charge) {
   // First attempt to load the card on file.
@@ -589,8 +595,8 @@ function commerce_dps_pxpost_cardonfile_charge($payment_method, $card_data, $ord
   module_load_include('inc', 'commerce_payment', 'includes/commerce_payment.credit_card');
   // Format order total for transaction.
 
+  $order_wrapper = entity_metadata_wrapper('commerce_order', $order);
   if (!isset($charge)) {
-    $order_wrapper = entity_metadata_wrapper('commerce_order', $order);
     $charge = commerce_line_items_total($order_wrapper->commerce_line_items);
   }
 
@@ -666,44 +672,36 @@ function commerce_dps_pxpost_cardonfile_charge($payment_method, $card_data, $ord
         $transaction->status = COMMERCE_PAYMENT_STATUS_FAILURE;
       }
       else {
-        // Set the transaction status based on the type of transaction this was.
-        switch ($txn_type) {
-          case COMMERCE_CREDIT_AUTH_ONLY:
-            $transaction->status = COMMERCE_PAYMENT_STATUS_PENDING;
-            break;
-
-          case COMMERCE_CREDIT_AUTH_CAPTURE:
-            $transaction->status = COMMERCE_PAYMENT_STATUS_SUCCESS;
-            break;
-
-          case COMMERCE_CREDIT_CAPTURE_ONLY:
-            $transaction->status = COMMERCE_PAYMENT_STATUS_SUCCESS;
-            break;
-
-          default:
-            watchdog('commerce_dps_pxpost', 'Status: @status', array('@status' => $txn_type));
-        }
+        $transaction->status = COMMERCE_PAYMENT_STATUS_SUCCESS;
       }
       // Store the type of transaction in the remote status.
-      $transaction->remote_status = "{$xml->TxnType}";
+      $transaction->remote_status = "{$xml->Transaction->TxnType}";
     }
   }
 
   // Build a meaningful response message.
   $message = array(
-    '<b>' . commerce_dps_reverse_txn_type((string)$xml->TxnType) . '</b>',
-    '<b>' . ($success != '1' ? t('REJECTED') : t('ACCEPTED')) . ':</b> ' . check_plain((string)$xml->Transaction->MerchantHelpText),
+    'Txn Type: @txn_type',
+    'Status: @status',
+    'Detail: @detail',
   );
-
   // Add the CVV response if enabled.
   if (isset($txn->Cvc2)) {
-    $message[] = t('CVV match: @cvv', array('@cvv' => (string)$xml->Transaction->Cvc2ResultCode));
+    $message[] = 'CVV match: @cvv_result';
   }
 
   $transaction->message = implode('<br />', $message);
+  $transaction->message_variables = array(
+    '@txn_type' => commerce_dps_reverse_txn_type((string)$xml->Transaction->TxnType),
+    '@status' => ($success != '1' ? t('REJECTED') : t('ACCEPTED')),
+    '@detail' => check_plain((string)$xml->Transaction->MerchantHelpText),
+    '@cvv_result' => (string)$xml->Transaction->Cvc2ResultCode,
+  );
 
   // Save the transaction information.
+  $transaction->data['debug'] = __FILE__ . '@' . (__LINE__+1);
   commerce_payment_transaction_save($transaction);
+  commerce_order_save($order);
 
   // If the payment failed, display an error and rebuild the form.
   if ($success != '1') {
