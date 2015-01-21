@@ -2,7 +2,7 @@
 
 /**
  * @file
- * Implements DPS PxPost payment service for use in Drupal Commerce.
+ * Implements DPS PX Post payment service for use in Drupal Commerce.
  */
 
 define('COMMERCE_DPS_PXPOST_USERNAME', 'PXPOSTUSERNAME');
@@ -88,7 +88,7 @@ function commerce_dps_pxpost_commerce_payment_method_info() {
 }
 
 /**
- * Returns the default settings for the Commerce DPS PxPost payment method.
+ * Returns the default settings for the Commerce DPS PX Post payment method.
  */
 function commerce_dps_pxpost_default_settings() {
   return array(
@@ -119,16 +119,16 @@ function commerce_dps_pxpost_settings_form($settings = NULL) {
 
   $form['username'] = array(
     '#type' => 'textfield',
-    '#title' => t('PxPost Username'),
-    '#description' => t('PxPost Username (contact Payment Express for this).'),
+    '#title' => t('PX Post Username'),
+    '#description' => t('PX Post Username (contact Payment Express for this).'),
     '#default_value' => $settings['username'],
     '#required' => TRUE,
   );
 
   $form['password'] = array(
     '#type' => 'textfield',
-    '#title' => t('PxPost Password'),
-    '#description' => t('PxPost Password (contact Payment Express for this).'),
+    '#title' => t('PX Post Password'),
+    '#description' => t('PX Post Password (contact Payment Express for this).'),
     '#default_value' => $settings['password'],
     '#required' => TRUE,
   );
@@ -154,7 +154,7 @@ function commerce_dps_pxpost_settings_form($settings = NULL) {
 
   $form['server'] = array(
     '#type' => 'value',
-    '#title' => t('PxPost server'),
+    '#title' => t('PX Post server'),
     '#value' => $settings['server'],
   );
 
@@ -420,7 +420,7 @@ function commerce_dps_pxpost_submit_form_submit($payment_method, $pane_form, $pa
   $xml = $txn->asXML();
 
   if ($payment_method['settings']['log_transactions']) {
-    watchdog('commerce_dps_pxpost', 'PxPost XML submission: <pre>@xml</pre>', array('@xml' => $xml), WATCHDOG_DEBUG);
+    watchdog('commerce_dps_pxpost', 'PX Post XML submission: <pre>@xml</pre>', array('@xml' => $xml), WATCHDOG_DEBUG);
   }
 
   $options = array(
@@ -434,7 +434,7 @@ function commerce_dps_pxpost_submit_form_submit($payment_method, $pane_form, $pa
   $result = drupal_http_request($payment_method['settings']['server'], $options);
 
   if ($payment_method['settings']['log_transactions']) {
-    watchdog('commerce_dps_pxpost', 'PxPost result (@code) from @server: <pre>@data</pre>', array('@code' => trim($result->code . ' ' . $result->status_message), '@data' => $result->data, '@server' => $payment_method['settings']['server']), WATCHDOG_DEBUG);
+    watchdog('commerce_dps_pxpost', 'PX Post result (@code) from @server: <pre>@data</pre>', array('@code' => trim($result->code . ' ' . $result->status_message), '@data' => $result->data, '@server' => $payment_method['settings']['server']), WATCHDOG_DEBUG);
   }
 
   // Prepare a transaction object to log the API response.
@@ -651,7 +651,7 @@ function commerce_dps_pxpost_cardonfile_charge($payment_method, $card_data, $ord
   $result = drupal_http_request($payment_method['settings']['server'], $options);
 
   if ($payment_method['settings']['log_transactions']) {
-    watchdog('commerce_dps_pxpost', 'PxPost result (@code) from @server: <pre>@data</pre>', array('@code' => trim($result->code . ' ' . $result->status_message), '@data' => $result->data, '@server' => $payment_method['settings']['server']), WATCHDOG_DEBUG);
+    watchdog('commerce_dps_pxpost', 'PX Post result (@code) from @server: <pre>@data</pre>', array('@code' => trim($result->code . ' ' . $result->status_message), '@data' => $result->data, '@server' => $payment_method['settings']['server']), WATCHDOG_DEBUG);
   }
 
   // Prepare a transaction object to log the API response.

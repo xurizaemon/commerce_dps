@@ -2,7 +2,7 @@
 
 /**
  * @file
- * Integrates the DPS PxPay gateway with Drupal Commerce.
+ * Integrates the DPS PX Pay gateway with Drupal Commerce.
  */
 
 define('COMMERCE_DPS_PXPAY_USERID', 'Sample User');
@@ -206,16 +206,16 @@ function commerce_dps_pxpay_settings_form($settings = NULL) {
 
   $form['commerce_dps_pxpay_userid'] = array(
     '#type' => 'textfield',
-    '#title' => t('PxPay User Id'),
-    '#description' => t('PxPay User Id that was issued by Payment Express.'),
+    '#title' => t('PX Pay User Id'),
+    '#description' => t('PX Pay User Id that was issued by Payment Express.'),
     '#default_value' => $settings['commerce_dps_pxpay_userid'],
     '#required' => TRUE,
   );
 
   $form['commerce_dps_pxpay_key'] = array(
     '#type' => 'textfield',
-    '#title' => t('PxPay key'),
-    '#description' => t('PxPay Key that was issued by Payment Express.'),
+    '#title' => t('PX Pay key'),
+    '#description' => t('PX Pay Key that was issued by Payment Express.'),
     '#default_value' => $settings['commerce_dps_pxpay_key'],
     '#required' => TRUE,
   );
@@ -223,7 +223,7 @@ function commerce_dps_pxpay_settings_form($settings = NULL) {
   //
   $form['commerce_dps_pxpay_server'] = array(
     '#type' => 'value',
-    '#title' => t('PxPay server'),
+    '#title' => t('PX Pay server'),
     '#value' => $settings['commerce_dps_pxpay_server'],
   );
 
@@ -238,7 +238,7 @@ function commerce_dps_pxpay_settings_form($settings = NULL) {
   $form['commerce_dps_pxpay_cancel_return_url'] = array(
     '#type' => 'textfield',
     '#title' => t('Cancel return URL'),
-    '#description' => t('Specify the path customers who cancel their DPS PxPay payment will be directed to when they return to your site.'),
+    '#description' => t('Specify the path customers who cancel their DPS PX Pay payment will be directed to when they return to your site.'),
     '#default_value' => $settings['commerce_dps_pxpay_cancel_return_url'],
     '#size' => 32,
     '#field_prefix' => url(NULL, array('absolute' => TRUE)) . (variable_get('clean_url', 0) ? '' : '?q='),
@@ -466,7 +466,7 @@ function commerce_dps_pxpay_fprn_process($order, &$payment, $settings) {
     if (!in_array($payment['TxnId'], $remote_ids)) {
       // Write transaction information if payment failed.
       commerce_dps_pxpay_order_transaction($order, $payment, COMMERCE_PAYMENT_STATUS_FAILURE);
-      watchdog('commerce_dps_pxpay', 'DPS PxPay transaction failed validation. Cart order ID: @cart_order', array('@cart_order' => $order->order->order_number), WATCHDOG_NOTICE);
+      watchdog('commerce_dps_pxpay', 'DPS PX Pay transaction failed validation. Cart order ID: @cart_order', array('@cart_order' => $order->order->order_number), WATCHDOG_NOTICE);
       drupal_set_message(t('The transaction failed validation. Please contact us for assistance. Reference Order Id: @orderid', array('@orderid' => $order->order_number)));
     }
     drupal_goto($settings['commerce_dps_pxpay_cancel_return_url']);
@@ -478,9 +478,9 @@ function commerce_dps_pxpay_fprn_process($order, &$payment, $settings) {
   $payment_mail = $payment['EmailAddress'];
 
   if ($merchant_reference != $payment['MerchantReference'] || $order->mail != $payment_mail) {
-    watchdog('commerce_dps_pxpay', 'DPS PxPay details do not match order details! Cart order ID: @cart_order', array('@cart_order' => $order->order_number), WATCHDOG_NOTICE);
+    watchdog('commerce_dps_pxpay', 'DPS PX Pay details do not match order details! Cart order ID: @cart_order', array('@cart_order' => $order->order_number), WATCHDOG_NOTICE);
     drupal_set_message(
-      t('The details of your DPS PxPay payment do not match your order. Please contact us for assistance. Reference Order Id: @orderid', array('@orderid' => $order->order_number))
+      t('The details of your DPS PX Pay payment do not match your order. Please contact us for assistance. Reference Order Id: @orderid', array('@orderid' => $order->order_number))
     );
     // Write transaction information if payment details do not match order.
     commerce_dps_pxpay_order_transaction($order, $payment, COMMERCE_PAYMENT_STATUS_FAILURE);
@@ -491,7 +491,7 @@ function commerce_dps_pxpay_fprn_process($order, &$payment, $settings) {
 
   // Only add the transaction if we do not have the TxnId stored.
   if (!in_array($payment['TxnId'], $remote_ids)) {
-    watchdog('commerce_dps_pxpay', 'DPS PxPay transaction succeeded. Cart order ID: @cart_order', array('@cart_order' => $order->order_number), WATCHDOG_NOTICE);
+    watchdog('commerce_dps_pxpay', 'DPS PX Pay transaction succeeded. Cart order ID: @cart_order', array('@cart_order' => $order->order_number), WATCHDOG_NOTICE);
     drupal_set_message(t('Transaction succeeded. Reference Order Id: @orderid', array('@orderid' => $order->order_number)));
     // Include information about the payment method in use.
     $payment['method_settings'] = $settings;

@@ -1,5 +1,5 @@
-name = "Commerce DPS PxPay"
-description = "Integrates the DPS PxPay gateway with Drupal Commerce payment module."
+name = "Commerce DPS PX Pay"
+description = "Integrates the DPS PX Pay gateway with Drupal Commerce payment module."
 core = "7.x"
 package = "Commerce (contrib)"
 
