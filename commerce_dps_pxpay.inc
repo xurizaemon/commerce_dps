@@ -141,8 +141,14 @@ function commerce_dps_pxpay_order_transaction($order, $payment, $status){
   // Set the transaction's statuses based on the payment_status.
   $transaction->remote_status = $payment['ResponseText'];
   $transaction->status = $status;
-  $transaction->message = 'Status @status, @statusdetail. Email: @email. Auth Code=@authcode.';
 
+  $message = array(
+    'Status: @status',
+    'Detail: @statusdetail',
+    'Email: @email',
+    'Auth Code: @authcode.'
+  );
+  $transaction->message = implode('<br>', $message);
   $transaction->message_variables = array(
     '@status' => $payment['Success'],
     '@statusdetail' => $payment['ResponseText'],
