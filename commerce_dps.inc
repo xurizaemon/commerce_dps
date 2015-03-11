@@ -110,15 +110,15 @@ function commerce_dps_txn_type($txn_type) {
  */
 function commerce_dps_reverse_txn_type($txn_type) {
   switch (strtoupper($txn_type)) {
-    case 'Auth':
+    case 'AUTH':
       return t('Authorization only');
-    case 'Complete':
+    case 'COMPLETE':
       return t('Prior authorization capture');
-    case 'Purchase':
+    case 'PURCHASE':
       return t('Purchase');
-    case 'Refund':
+    case 'REFUND':
       return t('Refund');
-    case 'Validate':
+    case 'VALIDATE':
       return t('Validate only');
   }
 }

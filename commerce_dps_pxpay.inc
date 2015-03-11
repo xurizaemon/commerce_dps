@@ -22,6 +22,9 @@ function commerce_dps_pxpay_generate_request($transaction) {
   $xml .= '  <TxnId>' . htmlspecialchars($transaction['txn_id']) . '</TxnId>';
   $xml .= '  <UrlSuccess>' . htmlspecialchars($transaction['url_success']) . '</UrlSuccess>';
   $xml .= '  <UrlFail>' . htmlspecialchars($transaction['url_failure']) . '</UrlFail>';
+  if (!empty($transaction['add_bill_card'])) {
+    $xml .= '  <EnableAddBillCard>1</EnableAddBillCard>';
+  }
   $xml .= '</GenerateRequest>';
 
   if ($transaction['log']) {
@@ -58,7 +61,7 @@ function commerce_dps_pxpay_generate_request($transaction) {
     if ($xml = simplexml_load_string($response->data)) {
       foreach ($xml->attributes() as $attribute => $value) {
         if ($attribute == 'valid' && $value == '1') {
-          return $xml->URI;
+          return (string)$xml->URI;
         }
         else {
           watchdog('commerce_dps_pxpay',
@@ -98,7 +101,8 @@ function commerce_dps_pxpay_process_response($transaction) {
     watchdog('commerce_dps_pxpay', 'ProcessResponse response: HTTP @code, <pre>@xml</pre>', array('@code' => $response->code, '@xml' => $response->data), WATCHDOG_DEBUG);
   }
 
-  // If response XML from PX Pay is good, extract and return transaction data.
+  // If response XML from PX Pay is good, extract and return
+  // transaction data.
   if ($response->code == 200) {
     $xml = simplexml_load_string($response->data);
     // Build data array.
@@ -110,9 +114,6 @@ function commerce_dps_pxpay_process_response($transaction) {
           $data[$child->getName()] = (string) $child;
         }
         return $data;
-      }
-      else {
-        // @TODO: Send to watchdog.
       }
     }
   }
@@ -140,8 +141,14 @@ function commerce_dps_pxpay_order_transaction($order, $payment, $status){
   // Set the transaction's statuses based on the payment_status.
   $transaction->remote_status = $payment['ResponseText'];
   $transaction->status = $status;
-  $transaction->message = 'Status @status, @statusdetail. Email: @email. Auth Code=@authcode.';
 
+  $message = array(
+    'Status: @status',
+    'Detail: @statusdetail',
+    'Email: @email',
+    'Auth Code: @authcode.'
+  );
+  $transaction->message = implode('<br>', $message);
   $transaction->message_variables = array(
     '@status' => $payment['Success'],
     '@statusdetail' => $payment['ResponseText'],
@@ -151,6 +158,47 @@ function commerce_dps_pxpay_order_transaction($order, $payment, $status){
 
   // Save the transaction information.
   commerce_payment_transaction_save($transaction);
+
+  // Additionally, if we have a DpsBillingId and Commerce Card on File
+  // is enabled, let's save it.
+  if (module_exists('commerce_cardonfile')) {
+    if (!empty($payment['DpsBillingId'])) {
+      // Build a payment details array for the credit card.
+      $payment_details = array(
+        'cardNumber' => $payment['CardNumber'],
+        'expirationDate' => substr($payment['DateExpiry'], 0, 2) . '-' . substr($payment['DateExpiry'], 2, 4),
+      );
+      // First look to see if we already have cards on file for the user.
+      $stored_cards = commerce_cardonfile_load_multiple_by_uid($order->uid, $payment['instance_id']);
+      $add_to_profile = NULL;
+
+      // Obtain the payment method used.
+      if (!empty($order->data['payment_method'])) {
+        $payment_method = commerce_payment_method_instance_load($order->data['payment_method']);
+      }
+
+      if (!empty($stored_cards)) {
+        // @TODO: Iterate through stored cards, remove any with
+        // matching details but differing BillingId.
+      }
+      // Store the card details.
+      $card_data = commerce_cardonfile_new();
+      $card_data->uid = $order->uid;
+      $card_data->payment_method = $payment_method['method_id'];
+      $card_data->instance_id = $payment_method['instance_id'];
+      $card_data->remote_id = $payment['DpsBillingId'];
+      $card_data->card_type = !empty($card_type) ? $card_type : 'card';
+      $card_data->card_name = $payment['CardHolderName'];
+      $card_data->card_number = substr($payment['CardNumber'], -4, 4);
+      $card_data->card_exp_month = substr($payment['DateExpiry'], 0, 2);
+      $card_data->card_exp_year = '20' . substr($payment['DateExpiry'], 2, 4);
+      $card_data->status = 1;
+
+      // Save and log the creation of the new card on file.
+      commerce_cardonfile_save($card_data);
+    }
+  }
+
 }
 
 /**
