@@ -33,7 +33,7 @@ function commerce_dps_currencies() {
 }
 
 /**
- * Returns the transaction type string for DPS PxPost that corresponds
+ * Returns the transaction type string for DPS PX Post that corresponds
  * to the Drupal Commerce constant.
  *
  * @param $txn_type
