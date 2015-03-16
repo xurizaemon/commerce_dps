@@ -544,6 +544,7 @@ function commerce_dps_pxpost_submit_form_submit($payment_method, $pane_form, $pa
         $card_data->card_number = substr($pane_values['credit_card']['number'], -4);
         $card_data->card_exp_month = $pane_values['credit_card']['exp_month'];
         $card_data->card_exp_year = $pane_values['credit_card']['exp_year'];
+        $card_data->instance_default = $pane_values['cardonfile_instance_default'];
         $card_data->status = 1;
 
         // Save and log the creation of the new card on file.
