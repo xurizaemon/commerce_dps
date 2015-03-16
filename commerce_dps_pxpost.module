@@ -503,8 +503,7 @@ function commerce_dps_pxpost_submit_form_submit($payment_method, $pane_form, $pa
 
   // If the payment failed, display an error and rebuild the form.
   if ($success != '1') {
-    drupal_set_message(t('We received the following error processing your card. Please enter your information again or try a different card.'), 'error');
-    drupal_set_message(check_plain((string)$xml->CardHolderResponseDescription), 'error');
+    drupal_set_message(t('Transaction error: %error', array('%error' => (string)$xml->Transaction->CardHolderResponseDescription)), 'error');
     return FALSE;
   }
 
