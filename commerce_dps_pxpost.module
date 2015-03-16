@@ -617,7 +617,7 @@ function commerce_dps_pxpost_cardonfile_charge($payment_method, $card_data, $ord
   $txn = new SimpleXMLElement('<Txn></Txn>');
   $txn->addChild('PostUsername', $payment_method['settings']['username']);
   $txn->addChild('PostPassword', $payment_method['settings']['password']);
-  $txn->addChild('Amount', $charge['amount']);
+  $txn->addChild('Amount', commerce_currency_amount_to_decimal($charge['amount'], $charge['currency_code']));
   $txn->addChild('TxnType', commerce_dps_txn_type($txn_type));
   $txn->addChild('InputCurrency', $charge['currency_code']);
   $txn->addChild('DpsBillingId', $card_data->remote_id);
