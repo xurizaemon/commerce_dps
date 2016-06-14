@@ -122,3 +122,20 @@ function commerce_dps_reverse_txn_type($txn_type) {
       return t('Validate only');
   }
 }
+
+/**
+ * Return a formatted number for DPS.
+ *
+ * Not the same as formatting for display; we want to return eg 12.50
+ * for 12.5 here.
+ *
+ * @see https://www.drupal.org/node/1124416
+ *
+ * @see commerce_currency_amount_to_decimal() which sounds promising
+ * but doesn't do what I expected.
+ */
+function commerce_dps_format_amount($amount, $currency_code='NZD') {
+  $currency = commerce_currency_load($currency_code);
+  $decimals = isset($currency['decimals']) ? $currency['decimals'] : 2;
+  return number_format($amount, 2, '.', '');
+}

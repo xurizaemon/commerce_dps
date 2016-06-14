@@ -273,6 +273,7 @@ function commerce_dps_pxpost_submit_form_validate($payment_method, $pane_form, $
  *   If null the total value of the order is used.
  */
 function commerce_dps_pxpost_submit_form_submit($payment_method, $pane_form, $pane_values, $order, $charge) {
+  module_load_include('inc', 'commerce_dps', 'commerce_dps');
   module_load_include('inc', 'commerce_dps_pxpost', 'commerce_dps');
 
   // Format order total for transaction.
@@ -372,10 +373,13 @@ function commerce_dps_pxpost_submit_form_submit($payment_method, $pane_form, $pa
                 ),1)), WATCHDOG_DEBUG);
   }
 
+  $amount = commerce_currency_amount_to_decimal($charge['amount'], $charge['currency_code']);
+  $amount = commerce_dps_format_amount($amount, $charge['currency_code']);
+
   $txn = new SimpleXMLElement('<Txn></Txn>');
   $txn->addChild('PostUsername', $payment_method['settings']['username']);
   $txn->addChild('PostPassword', $payment_method['settings']['password']);
-  $txn->addChild('Amount', commerce_currency_amount_to_decimal($charge['amount'], $charge['currency_code']));
+  $txn->addChild('Amount', $amount);
   $txn->addChild('TxnType', commerce_dps_txn_type($txn_type));
   switch ($txn_type) {
     case COMMERCE_CREDIT_AUTH_CAPTURE:

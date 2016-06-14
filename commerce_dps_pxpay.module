@@ -340,6 +340,7 @@ function commerce_dps_pxpay_order_form($form, &$form_state, $order, $settings) {
   $amount = $wrapper->commerce_order_total->amount->value();
   $currency_code = $wrapper->commerce_order_total->currency_code->value();
   $amount = commerce_currency_amount_to_decimal($amount, $currency_code);
+  $amount = commerce_dps_format_amount($amount, $currency_code);
   $cardonfile = isset($settings['cardonfile']) ? $settings['cardonfile'] : FALSE;
 
   $transaction = array(
