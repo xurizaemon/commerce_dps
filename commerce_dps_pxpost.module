@@ -507,8 +507,7 @@ function commerce_dps_pxpost_submit_form_submit($payment_method, $pane_form, $pa
 
   // If the payment failed, display an error and rebuild the form.
   if ($success != '1') {
-    drupal_set_message(t('We received the following error processing your card. Please enter your information again or try a different card.'), 'error');
-    drupal_set_message(check_plain((string)$xml->CardHolderResponseDescription), 'error');
+    drupal_set_message(t('Transaction error: %error', array('%error' => (string)$xml->Transaction->CardHolderResponseDescription)), 'error');
     return FALSE;
   }
 
@@ -549,6 +548,7 @@ function commerce_dps_pxpost_submit_form_submit($payment_method, $pane_form, $pa
         $card_data->card_number = substr($pane_values['credit_card']['number'], -4);
         $card_data->card_exp_month = $pane_values['credit_card']['exp_month'];
         $card_data->card_exp_year = $pane_values['credit_card']['exp_year'];
+        $card_data->instance_default = $pane_values['cardonfile_instance_default'];
         $card_data->status = 1;
 
         // Save and log the creation of the new card on file.
@@ -622,7 +622,7 @@ function commerce_dps_pxpost_cardonfile_charge($payment_method, $card_data, $ord
   $txn = new SimpleXMLElement('<Txn></Txn>');
   $txn->addChild('PostUsername', $payment_method['settings']['username']);
   $txn->addChild('PostPassword', $payment_method['settings']['password']);
-  $txn->addChild('Amount', $charge['amount']);
+  $txn->addChild('Amount', commerce_currency_amount_to_decimal($charge['amount'], $charge['currency_code']));
   $txn->addChild('TxnType', commerce_dps_txn_type($txn_type));
   $txn->addChild('InputCurrency', $charge['currency_code']);
   $txn->addChild('DpsBillingId', $card_data->remote_id);
