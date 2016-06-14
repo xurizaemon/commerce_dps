@@ -476,9 +476,14 @@ function commerce_dps_pxpay_fprn_process($order, &$payment, $settings) {
   // Local validation.
   $merchant_reference = $settings['commerce_dps_pxpay_refprefix'] . " #" . $order->order_number;
 
+  // Special case: If $order->mail is "some+verpstring@example.com",
+  // DPS will return "some verpstring@example.com". Perhaps we should
+  // be urlencoding email address for DPS? Anyway, for now we test
+  // both because otherwise orders using VERP addresses would fail.
+  $order_mail = str_replace('+', ' ', $order->mail);
   $payment_mail = $payment['EmailAddress'];
 
-  if ($merchant_reference != $payment['MerchantReference'] || $order->mail != $payment_mail) {
+  if ($merchant_reference != $payment['MerchantReference'] || ($order->mail != $payment_mail && $order_mail != $payment_mail)) {
     watchdog('commerce_dps_pxpay', 'DPS PX Pay details do not match order details! Cart order ID: @cart_order', array('@cart_order' => $order->order_number), WATCHDOG_NOTICE);
     drupal_set_message(
       t('The details of your DPS PX Pay payment do not match your order. Please contact us for assistance. Reference Order Id: @orderid', array('@orderid' => $order->order_number))
