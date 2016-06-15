@@ -222,9 +222,15 @@ function commerce_dps_pxpay_settings_form($settings = NULL) {
 
   //
   $form['commerce_dps_pxpay_server'] = array(
-    '#type' => 'value',
+    '#type' => 'select',
     '#title' => t('PX Pay server'),
-    '#value' => $settings['commerce_dps_pxpay_server'],
+    '#description' => t('If you are using the DPS PXPay 2.0 service, select it here.'),
+    '#options' => array(
+      'https://sec.paymentexpress.com/pxpay/pxaccess.aspx' => ('PX Pay'),
+      'https://sec.paymentexpress.com/pxaccess/pxpay.aspx' => ('PX Pay 2.0'),
+    ),
+    '#default_value' => $settings['commerce_dps_pxpay_server'],
+    '#required' => TRUE,
   );
 
   $form['commerce_dps_pxpay_currency'] = array(
@@ -367,12 +373,15 @@ function commerce_dps_pxpay_order_form($form, &$form_state, $order, $settings) {
     $parts = parse_url($url);
     $form['#action'] = $parts['scheme'] . '://' . $parts['host'] . $parts['path'];
     $form['#method'] = 'get';
-    parse_str($parts['query'], $data);
-    foreach ($data as $name => $value) {
-      $form[$name] = array(
-        '#type' => 'hidden',
-        '#value' => $value,
-      );
+    // PxPay 1 includes data in the query, PxPay 2 does not.
+    if (isset($parts['query'])) {
+      parse_str($parts['query'], $data);
+      foreach ($data as $name => $value) {
+        $form[$name] = array(
+          '#type' => 'hidden',
+          '#value' => $value,
+        );
+      }
     }
     $form['submit'] = array(
       '#type' => 'submit',
