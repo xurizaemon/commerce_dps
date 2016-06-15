@@ -220,11 +220,10 @@ function commerce_dps_pxpay_settings_form($settings = NULL) {
     '#required' => TRUE,
   );
 
-  //
   $form['commerce_dps_pxpay_server'] = array(
     '#type' => 'select',
-    '#title' => t('PX Pay server'),
-    '#description' => t('If you are using the DPS PXPay 2.0 service, select it here.'),
+    '#title' => t('PX Pay version'),
+    '#description' => t('If you are using the DPS PXPay 2.0 endpoint, select it here.'),
     '#options' => array(
       'https://sec.paymentexpress.com/pxpay/pxaccess.aspx' => ('PX Pay'),
       'https://sec.paymentexpress.com/pxaccess/pxpay.aspx' => ('PX Pay 2.0'),
@@ -454,7 +453,7 @@ function commerce_dps_pxpay_process_fprn($order) {
 }
 
 /**
- * Payment method callback: process an payment once it's been validated.
+ * Payment method callback: process a payment once it's been validated.
  *
  * @param  object $order    The order object being processed
  * @param  array  $payment  Payment details from DPS
