@@ -316,10 +316,15 @@ function commerce_dps_pxpay_submit_form($payment_method, $pane_values, $checkout
     'path' => drupal_get_path('module', 'commerce_dps_pxpay') . '/images/dps_paymentexpress_small.png',
     'alt' => t('DPS - Payment Gateway by Payment Express.'),
     'title' => t('DPS - Payment Gateway by Payment Express.'),
-    'attributes' => array('style' => '/* float: left; margin: 1em 1em 1em 1.5em;*/'),
+    'attributes' => array(
+      'class' => 'commerce-dps-pxpay-logo',
+    ),
   );
-  $pxlink_args = array('html' => TRUE, 'attributes' => array('target' => '_blank'));
-  $pxlogo = theme_image($pxlogo_args);
+  $pxlink_args = array(
+    'html' => TRUE,
+    'attributes' => array('target' => '_blank')
+  );
+  $pxlogo = theme('image', $pxlogo_args);
   $form['commerce_dps_pxpay_logo']
     = array('#markup' => l($pxlogo, 'http://www.paymentexpress.com', $pxlink_args));
 
