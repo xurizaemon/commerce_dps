@@ -467,7 +467,7 @@ function commerce_dps_pxpay_fprn_process($order, &$payment, $settings) {
     if (!in_array($payment['TxnId'], $remote_ids)) {
       // Write transaction information if payment failed.
       commerce_dps_pxpay_order_transaction($order, $payment, COMMERCE_PAYMENT_STATUS_FAILURE);
-      watchdog('commerce_dps_pxpay', 'DPS PX Pay transaction failed validation. Cart order ID: @cart_order', array('@cart_order' => $order->order->order_number), WATCHDOG_NOTICE);
+      watchdog('commerce_dps_pxpay', 'DPS PX Pay transaction failed validation. Cart order ID: @cart_order', array('@cart_order' => $order->order_number), WATCHDOG_NOTICE);
       drupal_set_message(t('The transaction failed validation. Please contact us for assistance. Reference Order Id: @orderid', array('@orderid' => $order->order_number)));
     }
     drupal_goto($settings['commerce_dps_pxpay_cancel_return_url']);
