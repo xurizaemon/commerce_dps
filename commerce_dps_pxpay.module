@@ -12,7 +12,7 @@ define('COMMERCE_DPS_PXPAY_CURRENCY', 'NZD');
 define('COMMERCE_DPS_PXPAY_CANCEL_RETURN_URL', 'cart');
 define('COMMERCE_DPS_PXPAY_REFPREFIX', 'Website Order');
 
- /**
+/**
  * Implements hook_menu().
  */
 function commerce_dps_pxpay_menu() {
@@ -358,7 +358,7 @@ function commerce_dps_pxpay_order_form($form, &$form_state, $order, $settings) {
     'reference' => $settings['commerce_dps_pxpay_refprefix'] . " #" . $order->order_number,
     'currency' => isset($currency_code) ? $currency_code : $settings['commerce_dps_pxpay_currency'],
     'url_success' => $settings['return'],
-    'url_failure' => $settings['return'],
+    'url_failure' => $settings['cancel_return'],
     'email' => $order->mail,
     'log' => $settings['commerce_dps_pxpay_log_transactions'],
     'add_bill_card' => $cardonfile,
