@@ -28,7 +28,10 @@ function commerce_dps_pxpay_generate_request($transaction) {
   $xml .= '</GenerateRequest>';
 
   if ($transaction['log']) {
-    watchdog('commerce_dps_pxpay', 'GenerateRequest: @reference, @xml', array('@reference' => $transaction['reference'], '@xml' => $xml), WATCHDOG_DEBUG);
+    watchdog('commerce_dps_pxpay', 'GenerateRequest: @reference, @xml', array(
+      '@reference' => $transaction['reference'],
+      '@xml' => $xml,
+    ), WATCHDOG_DEBUG);
   }
 
   $url = $transaction['server'];
@@ -36,8 +39,8 @@ function commerce_dps_pxpay_generate_request($transaction) {
     'method' => 'POST',
     'data' => $xml,
     'headers' => array(
-      'Content-type' =>  'application/xml',
-      'User-Agent' => 'Drupal Commerce DPS PX Pay (+https://drupal.org/project/commerce_dps)'
+      'Content-type' => 'application/xml',
+      'User-Agent' => 'Drupal Commerce DPS PX Pay (+https://drupal.org/project/commerce_dps)',
     ),
   );
   $response = drupal_http_request($url, $params);
@@ -61,7 +64,7 @@ function commerce_dps_pxpay_generate_request($transaction) {
     if ($xml = simplexml_load_string($response->data)) {
       foreach ($xml->attributes() as $attribute => $value) {
         if ($attribute == 'valid' && $value == '1') {
-          return (string)$xml->URI;
+          return (string) $xml->URI;
         }
         else {
           watchdog('commerce_dps_pxpay',
@@ -95,10 +98,16 @@ function commerce_dps_pxpay_process_response($transaction) {
   $xml .= '</ProcessResponse>';
 
   $url = variable_get('commerce_dps_pxpay_server', 'https://sec.paymentexpress.com/pxpay/pxaccess.aspx');
-  $response = drupal_http_request($url, array('method' => 'POST', 'data' => $xml));
+  $response = drupal_http_request($url, array(
+    'method' => 'POST',
+    'data' => $xml,
+  ));
 
   if ($transaction['log']) {
-    watchdog('commerce_dps_pxpay', 'ProcessResponse response: HTTP @code, <pre>@xml</pre>', array('@code' => $response->code, '@xml' => $response->data), WATCHDOG_DEBUG);
+    watchdog('commerce_dps_pxpay', 'ProcessResponse response: HTTP @code, <pre>@xml</pre>', array(
+      '@code' => $response->code,
+      '@xml' => $response->data,
+    ), WATCHDOG_DEBUG);
   }
 
   // If response XML from PX Pay is good, extract and return
@@ -123,13 +132,13 @@ function commerce_dps_pxpay_process_response($transaction) {
 /**
  * Create a transaction and associate it with an order.
  *
- * @param  object $order   The order object being processed
- * @param  array  $payment Payment details from DPS
- * @param  string $status  The payment status to use for the transaction
+ * @param  object $order The order object being processed
+ * @param  array $payment Payment details from DPS
+ * @param  string $status The payment status to use for the transaction
  *
  * @return void
  */
-function commerce_dps_pxpay_order_transaction($order, $payment, $status){
+function commerce_dps_pxpay_order_transaction($order, $payment, $status) {
   // Create a new payment transaction for the order.
   $transaction = commerce_payment_transaction_new('commerce_dps_pxpay', $order->order_id);
   $transaction->instance_id = 'dps_pxpay';
@@ -146,7 +155,7 @@ function commerce_dps_pxpay_order_transaction($order, $payment, $status){
     'Status: @status',
     'Detail: @statusdetail',
     'Email: @email',
-    'Auth Code: @authcode.'
+    'Auth Code: @authcode.',
   );
   $transaction->message = implode('<br>', $message);
   $transaction->message_variables = array(
@@ -208,7 +217,7 @@ function commerce_dps_pxpay_order_transaction($order, $payment, $status){
  *
  * @return array Remote IDs.
  */
-function commerce_dps_pxpay_get_remote_ids($order_id){
+function commerce_dps_pxpay_get_remote_ids($order_id) {
   $transaction_ids = commerce_dps_pxpay_get_transaction_ids($order_id);
   $transactions = commerce_payment_transaction_load_multiple($transaction_ids);
   $remote_ids = array();
@@ -225,13 +234,13 @@ function commerce_dps_pxpay_get_remote_ids($order_id){
  *
  * @return array This array contains all the transaction ids for the order
  */
-function commerce_dps_pxpay_get_transaction_ids($order_id){
+function commerce_dps_pxpay_get_transaction_ids($order_id) {
   $query = new EntityFieldQuery();
   $query->entityCondition('entity_type', 'commerce_payment_transaction')
     ->propertyCondition('order_id', $order_id, '=');
   $transactions = $query->execute();
   $transaction_ids = array();
-  if (array_key_exists('commerce_payment_transaction', $transactions)){
+  if (array_key_exists('commerce_payment_transaction', $transactions)) {
     foreach ($transactions['commerce_payment_transaction'] as $transaction) {
       $transaction_ids[] = $transaction->transaction_id;
     }

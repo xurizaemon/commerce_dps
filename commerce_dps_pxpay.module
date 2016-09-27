@@ -129,7 +129,7 @@ function commerce_dps_pxpay_form_commerce_checkout_form_review_continue_button_s
           $transaction->instance_id = $form_state['values']['commerce_payment']['payment_method'];
           $transaction->data['cardonfile_selected'] =
             $form_state['values']['commerce_payment']['payment_details']['cardonfile'];
-          $transaction->data['debug'] = __FILE__ . '@' . (__LINE__+1);
+          $transaction->data['debug'] = __FILE__ . '@' . (__LINE__ + 1);
           commerce_payment_transaction_save($transaction);
           // Record pending transaction against order.
           $order->data['commerce_dps_pxpay']['cardonfile_transaction'] = $transaction;
@@ -146,7 +146,8 @@ function commerce_dps_pxpay_form_commerce_checkout_form_review_continue_button_s
 function commerce_dps_pxpay_redirect_form($form, &$form_state, $order, $payment_method) {
   // Return error if DPS payment gateway userid and key unconfigured.
   if (empty($payment_method['settings']['commerce_dps_pxpay_userid']) ||
-    empty($payment_method['settings']['commerce_dps_pxpay_key'])) {
+    empty($payment_method['settings']['commerce_dps_pxpay_key'])
+  ) {
     drupal_set_message(t('The DPS payment gateway cannot be used at this time'), 'error');
     watchdog('commerce_dps_pxpay', 'Unable to generate form for PX Pay payment gateway as the User ID and Key are not configured.', array(), WATCHDOG_ERROR);
     return array();
@@ -191,18 +192,18 @@ function commerce_dps_pxpay_settings_form($settings = NULL) {
   $form = array();
 
   $settings = (array) $settings + array(
-    'commerce_dps_pxpay_userid' => COMMERCE_DPS_PXPAY_USERID,
-    'commerce_dps_pxpay_key' => COMMERCE_DPS_PXPAY_KEY,
-    'commerce_dps_pxpay_server' => COMMERCE_DPS_PXPAY_SERVER,
-    'commerce_dps_pxpay_currency' => COMMERCE_DPS_PXPAY_CURRENCY,
-    'commerce_dps_pxpay_cancel_return_url' => COMMERCE_DPS_PXPAY_CANCEL_RETURN_URL,
-    'commerce_dps_pxpay_refprefix' => COMMERCE_DPS_PXPAY_REFPREFIX,
-    'commerce_dps_pxpay_log_transactions' => 0,
-    'cardonfile' => FALSE,
-    'continuous' => FALSE,
-    'pxpost_username' => '',
-    'pxpost_password' => '',
-  );
+      'commerce_dps_pxpay_userid' => COMMERCE_DPS_PXPAY_USERID,
+      'commerce_dps_pxpay_key' => COMMERCE_DPS_PXPAY_KEY,
+      'commerce_dps_pxpay_server' => COMMERCE_DPS_PXPAY_SERVER,
+      'commerce_dps_pxpay_currency' => COMMERCE_DPS_PXPAY_CURRENCY,
+      'commerce_dps_pxpay_cancel_return_url' => COMMERCE_DPS_PXPAY_CANCEL_RETURN_URL,
+      'commerce_dps_pxpay_refprefix' => COMMERCE_DPS_PXPAY_REFPREFIX,
+      'commerce_dps_pxpay_log_transactions' => 0,
+      'cardonfile' => FALSE,
+      'continuous' => FALSE,
+      'pxpost_username' => '',
+      'pxpost_password' => '',
+    );
 
   $form['commerce_dps_pxpay_userid'] = array(
     '#type' => 'textfield',
@@ -328,7 +329,7 @@ function commerce_dps_pxpay_submit_form($payment_method, $pane_values, $checkout
   );
   $pxlink_args = array(
     'html' => TRUE,
-    'attributes' => array('target' => '_blank')
+    'attributes' => array('target' => '_blank'),
   );
   $pxlogo = theme('image', $pxlogo_args);
   $form['commerce_dps_pxpay_logo']
@@ -406,19 +407,19 @@ function commerce_dps_pxpay_order_form($form, &$form_state, $order, $settings) {
  */
 function commerce_dps_pxpay_process_fprn($order) {
   // Exclude "PXL1" (DPS FPRN) from creating user accounts.
-/*
-  $user_email_verification = variable_get('user_email_verification');
-  watchdog('commerce_dps_pxpay', $_SERVER['HTTP_USER_AGENT']);
-  if (isset($_SERVER['HTTP_USER_AGENT']) && $_SERVER['HTTP_USER_AGENT'] == 'PXL1') {
-    if ($user_email_verification) {
-      variable_set('user_email_verification', TRUE);
+  /*
+    $user_email_verification = variable_get('user_email_verification');
+    watchdog('commerce_dps_pxpay', $_SERVER['HTTP_USER_AGENT']);
+    if (isset($_SERVER['HTTP_USER_AGENT']) && $_SERVER['HTTP_USER_AGENT'] == 'PXL1') {
+      if ($user_email_verification) {
+        variable_set('user_email_verification', TRUE);
+      }
     }
-  }
-*/
+  */
   module_load_include('inc', 'commerce_dps_pxpay', 'commerce_dps');
   module_load_include('inc', 'commerce_dps_pxpay', 'commerce_dps_pxpay');
 
-  if(!$order) {
+  if (!$order) {
     return drupal_not_found();
   }
 
@@ -461,8 +462,8 @@ function commerce_dps_pxpay_process_fprn($order) {
 /**
  * Payment method callback: process an payment once it's been validated.
  *
- * @param  object $order    The order object being processed
- * @param  array  $payment  Payment details from DPS
+ * @param  object $order The order object being processed
+ * @param  array $payment Payment details from DPS
  * @param  string $settings User defined settings
  *
  * @return void
@@ -535,7 +536,10 @@ function commerce_dps_pxpay_cardonfile_charge($payment_method, $card_data, $orde
   module_load_include('module', 'commerce_dps_pxpay', 'commerce_dps_pxpost');
 
   // Clean up temporary transaction(s) associated with Card on File.
-  $transactions = commerce_payment_transaction_load_multiple(array(), array('order_id' => $order->order_id, 'payment_method' => 'commerce_dps_pxpay'));
+  $transactions = commerce_payment_transaction_load_multiple(array(), array(
+    'order_id' => $order->order_id,
+    'payment_method' => 'commerce_dps_pxpay',
+  ));
   foreach ($transactions as $transaction_id => $transaction) {
     // Check is probably redundant, since else we shouldn't be here.
     if ($transaction->instance_id == $payment_method['instance_id']) {
@@ -548,7 +552,8 @@ function commerce_dps_pxpay_cardonfile_charge($payment_method, $card_data, $orde
   // Copy the PX Post details to set up the settings array, use PX
   // Post charge callback.
   if (!empty($payment_method['settings']['pxpost_username']) &&
-    !empty($payment_method['settings']['pxpost_username'])) {
+    !empty($payment_method['settings']['pxpost_username'])
+  ) {
     $payment_method['settings'] += array(
       'username' => $payment_method['settings']['pxpost_username'],
       'password' => $payment_method['settings']['pxpost_password'],

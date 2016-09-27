@@ -237,7 +237,8 @@ function commerce_dps_pxpost_submit_form($payment_method, $pane_values, $checkou
 function commerce_dps_pxpost_submit_form_validate($payment_method, $pane_form, $pane_values, $order, $form_parents = array()) {
   // If the customer specified a card on file, skip the normal validation.
   if (module_exists('commerce_cardonfile') && !empty($payment_method['settings']['cardonfile']) &&
-    !empty($pane_values['cardonfile']) && $pane_values['cardonfile'] !== 'new') {
+    !empty($pane_values['cardonfile']) && $pane_values['cardonfile'] !== 'new'
+  ) {
     return;
   }
 
@@ -285,7 +286,8 @@ function commerce_dps_pxpost_submit_form_submit($payment_method, $pane_form, $pa
   // @TODO: If the customer specified payment using a card on file,
   // attempt that now and simply return the result.
   if (module_exists('commerce_cardonfile') && $payment_method['settings']['cardonfile'] &&
-    !empty($pane_values['cardonfile']) && $pane_values['cardonfile'] !== 'new') {
+    !empty($pane_values['cardonfile']) && $pane_values['cardonfile'] !== 'new'
+  ) {
     return commerce_dps_pxpost_submit_form_submit_cardonfile($payment_method, $pane_form, $pane_values, $order, $charge);
   }
 
@@ -337,13 +339,14 @@ function commerce_dps_pxpost_submit_form_submit($payment_method, $pane_form, $pa
   $addbillcard = FALSE;
   // Unless Card on File is enabled and the form says to store it.
   if (module_exists('commerce_cardonfile') && !empty($payment_method['settings']['cardonfile']) &&
-    !empty($pane_values['credit_card']['cardonfile_store']) && $pane_values['credit_card']['cardonfile_store']) {
+    !empty($pane_values['credit_card']['cardonfile_store']) && $pane_values['credit_card']['cardonfile_store']
+  ) {
     $addbillcard = TRUE;
   }
 
   // Prepare a card holder name for use in the request. According to
   // DPS docs, the cardHolderName value is not validated.
-  if ($order_wrapper->commerce_customer_billing->value()){
+  if ($order_wrapper->commerce_customer_billing->value()) {
     $billing_address = $order_wrapper->commerce_customer_billing->commerce_customer_address->value();
     if (!empty($billing_address['name_line'])) {
       $cardholder_name = $billing_address['name_line'];
@@ -365,12 +368,13 @@ function commerce_dps_pxpost_submit_form_submit($payment_method, $pane_form, $pa
 
   if ($payment_method['settings']['log_transactions']) {
     watchdog('commerce_dps_pxpost', 'Debug: <pre>!debug</pre>', array(
-        '!debug' => print_r(array(
-                  'payment_method' => $payment_method,
-                  'pane_values' => $pane_values,
-                  'order' => $order,
-                  'charge' => $charge,
-                ),1)), WATCHDOG_DEBUG);
+      '!debug' => print_r(array(
+        'payment_method' => $payment_method,
+        'pane_values' => $pane_values,
+        'order' => $order,
+        'charge' => $charge,
+      ), 1),
+    ), WATCHDOG_DEBUG);
   }
 
   $amount = commerce_currency_amount_to_decimal($charge['amount'], $charge['currency_code']);
@@ -397,7 +401,10 @@ function commerce_dps_pxpost_submit_form_submit($payment_method, $pane_form, $pa
         $txn->addChild('MerchantReference', $order->merchant_reference);
       }
       else {
-        $txn->addChild('MerchantReference', t('@prefix @order_number', array('@prefix' => $payment_method['settings']['reference_prefix'], '@order_number' => $order->order_number)));
+        $txn->addChild('MerchantReference', t('@prefix @order_number', array(
+          '@prefix' => $payment_method['settings']['reference_prefix'],
+          '@order_number' => $order->order_number,
+        )));
       }
       if (!empty($order->mail)) {
         $txn->addChild('TxnData1', $order->mail);
@@ -431,14 +438,18 @@ function commerce_dps_pxpost_submit_form_submit($payment_method, $pane_form, $pa
     'method' => 'POST',
     'data' => $xml,
     'headers' => array(
-      'Content-type' =>  'application/xml',
-      'User-Agent' => 'Drupal Commerce DPS PX Post (+https://drupal.org/project/commerce_dps)'
+      'Content-type' => 'application/xml',
+      'User-Agent' => 'Drupal Commerce DPS PX Post (+https://drupal.org/project/commerce_dps)',
     ),
   );
   $result = drupal_http_request($payment_method['settings']['server'], $options);
 
   if ($payment_method['settings']['log_transactions']) {
-    watchdog('commerce_dps_pxpost', 'PX Post result (@code) from @server: <pre>@data</pre>', array('@code' => trim($result->code . ' ' . $result->status_message), '@data' => $result->data, '@server' => $payment_method['settings']['server']), WATCHDOG_DEBUG);
+    watchdog('commerce_dps_pxpost', 'PX Post result (@code) from @server: <pre>@data</pre>', array(
+      '@code' => trim($result->code . ' ' . $result->status_message),
+      '@data' => $result->data,
+      '@server' => $payment_method['settings']['server'],
+    ), WATCHDOG_DEBUG);
   }
 
   // Prepare a transaction object to log the API response.
@@ -451,7 +462,7 @@ function commerce_dps_pxpost_submit_form_submit($payment_method, $pane_form, $pa
   if ($result->code == 200) {
     if ($xml = simplexml_load_string($result->data)) {
       $success = "{$xml->Success}";
-      $transaction->remote_id = (string)$xml->DpsTxnRef;
+      $transaction->remote_id = (string) $xml->DpsTxnRef;
 
       // If we didn't get an approval response code...
       if ($success != '1') {
@@ -495,10 +506,10 @@ function commerce_dps_pxpost_submit_form_submit($payment_method, $pane_form, $pa
 
   $transaction->message = implode('<br />', $message);
   $transaction->message_variables = array(
-    '@txn_type' => commerce_dps_reverse_txn_type((string)$xml->Transaction->TxnType),
+    '@txn_type' => commerce_dps_reverse_txn_type((string) $xml->Transaction->TxnType),
     '@status' => ($success != '1' ? t('REJECTED') : t('ACCEPTED')),
-    '@detail' => check_plain((string)$xml->Transaction->MerchantHelpText),
-    '@cvv_result' => (string)$xml->Transaction->Cvc2ResultCode,
+    '@detail' => check_plain((string) $xml->Transaction->MerchantHelpText),
+    '@cvv_result' => (string) $xml->Transaction->Cvc2ResultCode,
   );
 
   // Save the transaction information.
@@ -507,7 +518,7 @@ function commerce_dps_pxpost_submit_form_submit($payment_method, $pane_form, $pa
 
   // If the payment failed, display an error and rebuild the form.
   if ($success != '1') {
-    drupal_set_message(t('Transaction error: %error', array('%error' => (string)$xml->Transaction->CardHolderResponseDescription)), 'error');
+    drupal_set_message(t('Transaction error: %error', array('%error' => (string) $xml->Transaction->CardHolderResponseDescription)), 'error');
     return FALSE;
   }
 
@@ -518,7 +529,7 @@ function commerce_dps_pxpost_submit_form_submit($payment_method, $pane_form, $pa
     case COMMERCE_CREDIT_AUTH_CAPTURE:
     case COMMERCE_CREDIT_CAPTURE_ONLY:
       if (isset($xml->Transaction->DpsBillingId)) {
-        $billing_id = (string)$xml->Transaction->DpsBillingId;
+        $billing_id = (string) $xml->Transaction->DpsBillingId;
 
         // Build a payment details array for the credit card.
         $payment_details = array(
@@ -630,7 +641,10 @@ function commerce_dps_pxpost_cardonfile_charge($payment_method, $card_data, $ord
     $txn->addChild('MerchantReference', $order->merchant_reference);
   }
   else {
-    $txn->addChild('MerchantReference', t('@prefix @order_number', array('@prefix' => $payment_method['settings']['reference_prefix'], '@order_number' => $order->order_number)));
+    $txn->addChild('MerchantReference', t('@prefix @order_number', array(
+      '@prefix' => $payment_method['settings']['reference_prefix'],
+      '@order_number' => $order->order_number,
+    )));
   }
   if (!empty($order->mail)) {
     $txn->addChild('TxnData1', $order->mail);
@@ -648,14 +662,18 @@ function commerce_dps_pxpost_cardonfile_charge($payment_method, $card_data, $ord
     'method' => 'POST',
     'data' => $xml,
     'headers' => array(
-      'Content-type' =>  'application/xml',
-      'User-Agent' => 'Drupal Commerce DPS PX Post (+https://drupal.org/project/commerce_dps)'
+      'Content-type' => 'application/xml',
+      'User-Agent' => 'Drupal Commerce DPS PX Post (+https://drupal.org/project/commerce_dps)',
     ),
   );
   $result = drupal_http_request($payment_method['settings']['server'], $options);
 
   if ($payment_method['settings']['log_transactions']) {
-    watchdog('commerce_dps_pxpost', 'PX Post result (@code) from @server: <pre>@data</pre>', array('@code' => trim($result->code . ' ' . $result->status_message), '@data' => $result->data, '@server' => $payment_method['settings']['server']), WATCHDOG_DEBUG);
+    watchdog('commerce_dps_pxpost', 'PX Post result (@code) from @server: <pre>@data</pre>', array(
+      '@code' => trim($result->code . ' ' . $result->status_message),
+      '@data' => $result->data,
+      '@server' => $payment_method['settings']['server'],
+    ), WATCHDOG_DEBUG);
   }
 
   // Prepare a transaction object to log the API response.
@@ -668,7 +686,7 @@ function commerce_dps_pxpost_cardonfile_charge($payment_method, $card_data, $ord
   if ($result->code == 200) {
     if ($xml = simplexml_load_string($result->data)) {
       $success = "{$xml->Success}";
-      $transaction->remote_id = (string)$xml->DpsTxnRef;
+      $transaction->remote_id = (string) $xml->DpsTxnRef;
 
       // If we didn't get an approval response code...
       if ($success != '1') {
@@ -696,21 +714,21 @@ function commerce_dps_pxpost_cardonfile_charge($payment_method, $card_data, $ord
 
   $transaction->message = implode('<br />', $message);
   $transaction->message_variables = array(
-    '@txn_type' => commerce_dps_reverse_txn_type((string)$xml->Transaction->TxnType),
+    '@txn_type' => commerce_dps_reverse_txn_type((string) $xml->Transaction->TxnType),
     '@status' => ($success != '1' ? t('REJECTED') : t('ACCEPTED')),
-    '@detail' => check_plain((string)$xml->Transaction->MerchantHelpText),
-    '@cvv_result' => (string)$xml->Transaction->Cvc2ResultCode,
+    '@detail' => check_plain((string) $xml->Transaction->MerchantHelpText),
+    '@cvv_result' => (string) $xml->Transaction->Cvc2ResultCode,
   );
 
   // Save the transaction information.
-  $transaction->data['debug'] = __FILE__ . '@' . (__LINE__+1);
+  $transaction->data['debug'] = __FILE__ . '@' . (__LINE__ + 1);
   commerce_payment_transaction_save($transaction);
   commerce_order_save($order);
 
   // If the payment failed, display an error and rebuild the form.
   if ($success != '1') {
     drupal_set_message(t('We received the following error processing your card. Please enter your information again or try a different card.'), 'error');
-    drupal_set_message(check_plain((string)$xml->CardHolderResponseDescription), 'error');
+    drupal_set_message(check_plain((string) $xml->CardHolderResponseDescription), 'error');
     return FALSE;
   }
 
