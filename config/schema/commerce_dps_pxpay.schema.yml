@@ -1,0 +1,31 @@
+commerce_payment.commerce_payment_gateway.plugin.dps_pxpay:
+  type: commerce_payment_gateway_configuration
+  mapping:
+    pxpay_user_id:
+      type: string
+      label: 'PxPay UserId'
+    pxpay_key:
+      type: string
+      label: 'PxPay Key'
+    pxpay_cancel_url:
+      type: string
+      label: 'Cancel Payment Url'
+    pxpay_ref_prefix:
+      type: string
+      label: 'Merchant Reference Prefix'
+
+commerce_payment.commerce_payment_gateway.plugin.dps_pxpost:
+  type: commerce_payment_gateway_configuration
+  mapping:
+    pxpost_username:
+      type: string
+      label: 'PxPost Username'
+    pxpost_password:
+      type: string
+      label: 'PxPost password'
+    pxpost_server:
+      type: string
+      label: 'PxPost Server'
+    pxpost_ref_prefix:
+      type: string
+      label: 'Merchant Reference Prefix'
