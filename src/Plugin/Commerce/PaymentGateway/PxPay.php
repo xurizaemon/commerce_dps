@@ -2,16 +2,11 @@
 
 namespace Drupal\commerce_dps\Plugin\Commerce\PaymentGateway;
 
-use Drupal\commerce_dps\PxPayServiceInterface;
-use Drupal\commerce_order\Entity\OrderInterface;
+use Drupal\commerce_dps\Dps;
 use Drupal\commerce_payment\PaymentMethodTypeManager;
 use Drupal\commerce_payment\PaymentTypeManager;
-use Drupal\commerce_payment\Plugin\Commerce\PaymentGateway\OffsitePaymentGatewayBase;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Form\FormStateInterface;
-use Omnipay\Common\Message\ResponseInterface;
-use Symfony\Component\DependencyInjection\ContainerInterface;
-use Symfony\Component\HttpFoundation\Request;
 
 /**
  * Provides the Paypal Express Checkout payment gateway.
@@ -29,14 +24,7 @@ use Symfony\Component\HttpFoundation\Request;
  *   },
  * )
  */
-class PxPay extends OffsitePaymentGatewayBase implements PxPayInterface {
-
-  /**
-   * The price rounder.
-   *
-   * @var \Drupal\commerce_price\RounderInterface
-   */
-  protected $rounder;
+class PxPay extends Dps {
 
   /**
    * Fail Proof Result Notification.
@@ -67,8 +55,6 @@ class PxPay extends OffsitePaymentGatewayBase implements PxPayInterface {
    *   The payment type manager.
    * @param \Drupal\commerce_payment\PaymentMethodTypeManager $payment_method_type_manager
    *   The payment method type manager.
-   * @param \Drupal\commerce_dps\PxPayServiceInterface $pxPayService
-   *   PxPay Service.
    */
   public function __construct(
     array $configuration,
@@ -76,8 +62,7 @@ class PxPay extends OffsitePaymentGatewayBase implements PxPayInterface {
     $plugin_definition,
     EntityTypeManagerInterface $entity_type_manager,
     PaymentTypeManager $payment_type_manager,
-    PaymentMethodTypeManager $payment_method_type_manager,
-    PxPayServiceInterface $pxPayService
+    PaymentMethodTypeManager $payment_method_type_manager
   ) {
     parent::__construct(
       $configuration,
@@ -88,68 +73,14 @@ class PxPay extends OffsitePaymentGatewayBase implements PxPayInterface {
       $payment_method_type_manager
     );
 
-    $this->pxPayService = $pxPayService;
+    $this->pxPayService = \Drupal::service('commerce_dps.pxpay_service');
 
-    $this->gateway = $pxPayService->getGateway();
+    $this->gateway = $this->pxPayService->getGateway();
 
     $this->pxPayService->setConfiguration($configuration);
 
     $this->pxPayService->setCredentials();
-  }
 
-  /**
-   * {@inheritdoc}
-   */
-  public function onNotify(Request $request) {
-    // Still todo.
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function onCancel(OrderInterface $order, Request $request) {
-
-    /** @var \Omnipay\Common\Message\AbstractResponse $response */
-    $response = $this->gateway->completePurchase([])->send();
-
-    if (!$response->isRedirect() && !$response->isSuccessful()) {
-      $this->createTransaction($order, $response);
-    }
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function onReturn(OrderInterface $order, Request $request) {
-
-    /** @var \Omnipay\Common\Message\AbstractResponse $response */
-    $response = $this->gateway->completePurchase([])->send();
-
-    if (!$response->isRedirect() && $response->isSuccessful()) {
-      $this->createTransaction($order, $response);
-    }
-
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function createTransaction(OrderInterface $order, ResponseInterface $response) {
-
-    $payment_storage = $this->entityTypeManager->getStorage('commerce_payment');
-
-    $payment = $payment_storage->create([
-      'state' => ucfirst(strtolower($response->getMessage())),
-      'amount' => $order->getTotalPrice(),
-      'payment_gateway' => $this->entityId,
-      'order_id' => $order->id(),
-      'test' => $this->getMode() == 'test',
-      'remote_id' => $response->getTransactionId(),
-      'remote_state' => $response->getMessage(),
-      'authorized' => \Drupal::time()->getRequestTime(),
-    ]);
-
-    $payment->save();
   }
 
   /**
@@ -249,21 +180,6 @@ class PxPay extends OffsitePaymentGatewayBase implements PxPayInterface {
       }
 
     }
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition) {
-    return new static(
-      $configuration,
-      $plugin_id,
-      $plugin_definition,
-      $container->get('entity_type.manager'),
-      $container->get('plugin.manager.commerce_payment_type'),
-      $container->get('plugin.manager.commerce_payment_method_type'),
-      $container->get('commerce_dps.pxpay_service')
-    );
   }
 
 }
