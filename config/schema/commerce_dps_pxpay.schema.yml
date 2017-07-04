@@ -7,9 +7,6 @@ commerce_payment.commerce_payment_gateway.plugin.dps_pxpay:
     pxpay_key:
       type: string
       label: 'PxPay Key'
-    pxpay_cancel_url:
-      type: string
-      label: 'Cancel Payment Url'
     pxpay_ref_prefix:
       type: string
       label: 'Merchant Reference Prefix'

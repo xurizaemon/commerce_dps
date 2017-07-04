@@ -90,7 +90,6 @@ class PxPay extends Dps {
     return array_merge([
       'pxpay_user_id' => '',
       'pxpay_key' => '',
-      'pxpay_cancel_url' => '/cart',
       'pxpay_ref_prefix' => 'Website Order',
       'pxpay_integration_method' => 'redirect',
       'pxpay_iframe_attributes' => 'width="100%" height="750" frameborder="0"',
@@ -116,14 +115,6 @@ class PxPay extends Dps {
     $form[$key] = [
       '#type' => 'textfield',
       '#title' => $this->t('PxPay Key'),
-      '#default_value' => $this->configuration[$key],
-      '#required' => TRUE,
-    ];
-
-    $key = 'pxpay_cancel_url';
-    $form[$key] = [
-      '#type' => 'textfield',
-      '#title' => $this->t('Cancel Payment Url'),
       '#default_value' => $this->configuration[$key],
       '#required' => TRUE,
     ];
