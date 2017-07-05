@@ -3,6 +3,12 @@ services:
     class: Drupal\Core\Logger\LoggerChannel
     factory: logger.factory:get
     arguments: ['commerce_dps']
+
   commerce_dps.pxpay_service:
-    class: Drupal\commerce_dps\PxPayService
-    arguments: ['@entity_type.manager', '@commerce_dps.logger']
+    class: Drupal\commerce_dps\PaymentExpress\PxPayService
+    arguments: ['@commerce_dps.logger']
+
+  commerce_dps.payment_express:
+      class: Drupal\commerce_dps\PaymentExpress\PaymentExpressService
+      arguments: ['@commerce_dps.logger']
+#      arguments: ['@entity_type.manager', '@commerce_dps.logger']

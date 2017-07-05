@@ -2,7 +2,7 @@
 
 namespace Drupal\commerce_dps\Plugin\Commerce\PaymentGateway;
 
-use Drupal\commerce_dps\Dps;
+use Drupal\commerce_dps\PaymentExpress\CommercePxPay;
 use Drupal\commerce_payment\PaymentMethodTypeManager;
 use Drupal\commerce_payment\PaymentTypeManager;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
@@ -17,14 +17,14 @@ use Drupal\Core\Form\FormStateInterface;
  *   display_label = @Translation("PxPay"),
  *   payment_method_types = {"credit_card"},
  *   forms = {
- *     "offsite-payment" = "Drupal\commerce_dps\PluginForm\OffSiteRedirect\PxPayOffSiteForm",
+ *     "offsite-payment" = "Drupal\commerce_dps\PluginForm\OffSiteRedirect\PxPayForm",
  *   },
  *   credit_card_types = {
  *     "amex", "discover", "mastercard", "visa",
  *   },
  * )
  */
-class PxPay extends Dps {
+class PxPay extends CommercePxPay {
 
   /**
    * Fail Proof Result Notification.
@@ -100,7 +100,6 @@ class PxPay extends Dps {
    * {@inheritdoc}
    */
   public function buildConfigurationForm(array $form, FormStateInterface $form_state) {
-
     $form = parent::buildConfigurationForm($form, $form_state);
 
     $key = 'pxpay_user_id';
@@ -158,7 +157,6 @@ class PxPay extends Dps {
    * {@inheritdoc}
    */
   public function submitConfigurationForm(array &$form, FormStateInterface $form_state) {
-
     parent::submitConfigurationForm($form, $form_state);
 
     if (!$form_state->getErrors()) {

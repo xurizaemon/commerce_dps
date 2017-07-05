@@ -1,6 +1,6 @@
 <?php
 
-namespace Drupal\commerce_dps;
+namespace Drupal\commerce_dps\PaymentExpress;
 
 use Drupal\commerce_order\Entity\OrderInterface;
 use Omnipay\Common\Message\ResponseInterface;
@@ -8,7 +8,7 @@ use Omnipay\Common\Message\ResponseInterface;
 /**
  * Dps Interface.
  */
-interface DpsInterface {
+interface CommercePxPayInterface {
 
   /**
    * Capture the payment.

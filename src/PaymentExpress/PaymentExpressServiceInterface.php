@@ -1,18 +1,13 @@
 <?php
 
-namespace Drupal\commerce_dps;
+namespace Drupal\commerce_dps\PaymentExpress;
 
 use Drupal\commerce_payment\Entity\PaymentInterface;
 
 /**
  * Provides a handler for IPN requests from PayPal.
  */
-interface PxPayServiceInterface {
-
-  /**
-   * Prepare xml request data to PxPay.
-   */
-  public function preparePxPayXmlTransaction(array $form, PaymentInterface $payment);
+interface PaymentExpressServiceInterface {
 
   /**
    * Get pxPay gateway instance.
@@ -33,21 +28,6 @@ interface PxPayServiceInterface {
    * Set pxPay configuration property.
    */
   public function getConfiguration($key = NULL);
-
-  /**
-   * Is integration redirect?
-   */
-  public function isRedirectMethod();
-
-  /**
-   * Is integration iframe?
-   */
-  public function isIframeMethod();
-
-  /**
-   * Get iframe attributes.
-   */
-  public function getIframeAttributes();
 
   /**
    * Get pxPay userID.

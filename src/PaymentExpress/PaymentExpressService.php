@@ -1,25 +1,20 @@
 <?php
 
-namespace Drupal\commerce_dps;
+namespace Drupal\commerce_dps\PaymentExpress;
 
+use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Psr\Log\LoggerInterface;
 use Omnipay\Omnipay;
 use Drupal\commerce_payment\Entity\PaymentInterface;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
- * Class PxPayService.
+ * Class Payment Express Service.
  *
  * @package Drupal\commerce_dps
  */
-class PxPayService implements PxPayServiceInterface {
-
-  /**
-   * The entity type manager.
-   *
-   * @var \Drupal\Core\Entity\EntityTypeManagerInterface
-   */
-  public $entityTypeManager;
+class PaymentExpressService implements PaymentExpressServiceInterface {
 
   /**
    * The logger.
@@ -45,31 +40,11 @@ class PxPayService implements PxPayServiceInterface {
   /**
    * Constructs a new PaymentGatewayBase object.
    *
-   * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entity_type_manager
-   *   The entity type manager.
    * @param \Psr\Log\LoggerInterface $logger
    *   The logger channel.
    */
-  public function __construct(EntityTypeManagerInterface $entity_type_manager, LoggerInterface $logger) {
-    $this->entityTypeManager = $entity_type_manager;
+  public function __construct(LoggerInterface $logger) {
     $this->logger = $logger;
-    $this->gateway = Omnipay::create("\\Omnipay\\PaymentExpress\\PxPayGateway");
-  }
-
-  /**
-   * Prepare xml request data to PxPay.
-   */
-  public function preparePxPayXmlTransaction(array $form, PaymentInterface $payment) {
-
-    $this->gateway->setCurrency($payment->getAmount()->getCurrencyCode());
-
-    $this->gateway->setParameter('returnUrl', $form['#return_url']);
-
-    $this->gateway->setParameter('cancelUrl', $form['#cancel_url']);
-
-    $this->gateway->setParameter('amount', $payment->getAmount()->getNumber());
-
-    $this->gateway->setParameter('description', $this->getReference() . ' #' . $payment->getOrderId());
   }
 
   /**
@@ -99,27 +74,6 @@ class PxPayService implements PxPayServiceInterface {
    */
   public function getKey() {
     return $this->getConfiguration('pxpay_key');
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function isRedirectMethod() {
-    return $this->getConfiguration('pxpay_integration_method') === 'redirect';
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function isIframeMethod() {
-    return $this->getConfiguration('pxpay_integration_method') === 'iframe';
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function getIframeAttributes() {
-    return $this->getConfiguration('pxpay_iframe_attributes');
   }
 
   /**

@@ -1,11 +1,13 @@
 <?php
 
-namespace Drupal\commerce_dps\PluginForm\OffsiteRedirect;
+namespace Drupal\commerce_dps\PluginForm\OffSiteRedirect;
 
-use Drupal\commerce_dps\PxPayServiceInterface;
+use Drupal\commerce_dps\PaymentExpress\PaymentExpressService;
+use Drupal\commerce_dps\PaymentExpress\PxPayServiceInterface;
 use Drupal\commerce_payment\PluginForm\PaymentOffsiteForm;
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Url;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -13,7 +15,7 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  *
  * @package Drupal\commerce_dps\PluginForm\OffsiteRedirect
  */
-class PxPayOffSiteForm extends PaymentOffsiteForm implements ContainerInjectionInterface {
+class PxPayForm extends PaymentOffsiteForm implements ContainerInjectionInterface {
 
   /**
    * The PxPay Service.
@@ -49,6 +51,15 @@ class PxPayOffSiteForm extends PaymentOffsiteForm implements ContainerInjectionI
 
     $this->pxPayService->preparePxPayXmlTransaction($form, $payment);
 
+    if ($this->pxPayService->isIframeMethod()) {
+      $cancelUrl = Url::fromRoute(
+        'commerce_dps.checkout.iframe.cancel',
+        ['commerce_order' => $payment->getOrderId()],
+        ['absolute' => TRUE]
+      )->toString();
+      $this->gateway->setParameter('cancelUrl', $cancelUrl);
+    }
+
     if ($this->pxPayService->getConfiguration('mode') === 'test') {
       $this->gateway->setTestMode(TRUE);
     }
@@ -71,6 +82,14 @@ class PxPayOffSiteForm extends PaymentOffsiteForm implements ContainerInjectionI
     }
 
     if ($this->pxPayService->isIframeMethod()) {
+
+//      global $base_url;
+
+//      $cancelUrl = Url::fromRoute('commerce_dps.checkout.iframe.cancel', ['order' => $payment->getOrder()]);
+
+//      $cancelUrl = "{$base_url}/checkout/{$payment->getOrderId()}/iframe/cancel";
+
+//      $this->gateway->setParameter('cancelUrl', $cancelUrl);
 
       $form['iframe'] = [
         '#markup' => sprintf(

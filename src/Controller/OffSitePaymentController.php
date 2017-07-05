@@ -4,6 +4,8 @@ namespace Drupal\commerce_dps\Controller;
 
 use Drupal\commerce_checkout\CheckoutOrderManager;
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
+use Drupal\Core\Link;
+use Drupal\Core\Url;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Response;
@@ -102,6 +104,53 @@ class OffSitePaymentController implements ContainerInjectionInterface {
 
     return AccessResult::allowed();
 
+  }
+
+  /**
+   * @return array
+   */
+  public function iframeCancel(RouteMatchInterface $route_match) {
+
+    /** @var \Drupal\commerce_order\Entity\OrderInterface $order */
+    $order = $route_match->getParameter('commerce_order');
+
+    $url = Url::fromRoute(
+      'commerce_payment.checkout.cancel',
+      ['commerce_order' => $order->id(), 'step' => 'payment'],
+      ['absolute' => TRUE]
+    )->toString();
+
+//    $this->gateway->setParameter('cancelUrl', $url);
+
+    global $base_url;
+
+    $script = <<<JS
+      <script>
+//        window.top.location.href = "{$base_url}/checkout/{$order->id()}/review"; 
+        window.top.location.href = "{$url}"; 
+     </script>
+JS;
+
+    return new Response($script, 200);
+
+  }
+
+  /**
+   * @return array
+   */
+  public function iframeSuccess(RouteMatchInterface $route_match) {
+
+    /** @var \Drupal\commerce_order\Entity\OrderInterface $order */
+    $order = $route_match->getParameter('commerce_order');
+
+    $payment_gateway_plugin = $order->payment_gateway->entity->getPlugin();
+
+    $data = array(
+      '#type' => 'markup',
+      '#markup' => 'Success',
+    );
+
+    return $data;
   }
 
 }

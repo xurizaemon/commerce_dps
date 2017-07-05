@@ -1,17 +1,16 @@
 <?php
 
-namespace Drupal\commerce_dps;
+namespace Drupal\commerce_dps\PaymentExpress;
 
 use Drupal\commerce_order\Entity\OrderInterface;
 use Drupal\commerce_payment\Plugin\Commerce\PaymentGateway\OffsitePaymentGatewayBase;
 use Omnipay\Common\Message\ResponseInterface;
-use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\Request;
 
 /**
  * Provides Base DPS class.
  */
-abstract class Dps extends OffsitePaymentGatewayBase implements DpsInterface {
+abstract class CommercePxPay extends OffsitePaymentGatewayBase implements CommercePxPayInterface {
 
   /**
    * {@inheritdoc}
@@ -74,34 +73,6 @@ abstract class Dps extends OffsitePaymentGatewayBase implements DpsInterface {
     ]);
 
     $payment->save();
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function defaultConfiguration() {
-    return array_merge([
-      'pxpay_user_id' => '',
-      'pxpay_key' => '',
-      'pxpay_cancel_url' => '/cart',
-      'pxpay_ref_prefix' => 'Website Order',
-      'pxpay_integration_method' => 'redirect',
-      'pxpay_iframe_attributes' => 'width="100%" height="750" frameborder="0"',
-    ], parent::defaultConfiguration());
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition) {
-    return new static(
-      $configuration,
-      $plugin_id,
-      $plugin_definition,
-      $container->get('entity_type.manager'),
-      $container->get('plugin.manager.commerce_payment_type'),
-      $container->get('plugin.manager.commerce_payment_method_type')
-    );
   }
 
 }
