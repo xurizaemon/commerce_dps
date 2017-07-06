@@ -93,11 +93,4 @@ class PxPayService extends PaymentExpressService implements PxPayServiceInterfac
     return $this->getConfiguration('pxpay_iframe_attributes');
   }
 
-  /**
-   * {@inheritdoc}
-   */
-  public function getReference() {
-    return $this->getConfiguration('pxpay_ref_prefix');
-  }
-
 }
