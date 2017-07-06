@@ -23,6 +23,8 @@ abstract class CommercePxPay extends OffsitePaymentGatewayBase implements Commer
     if (!$response->isRedirect() && $response->isSuccessful()) {
       $order = $request->attributes->all()['commerce_order'];
       $this->capturePayment($order, $response);
+      $order->state = 'completed';
+      $order->save();
     }
 
   }
@@ -48,7 +50,7 @@ abstract class CommercePxPay extends OffsitePaymentGatewayBase implements Commer
     /** @var \Omnipay\Common\Message\AbstractResponse $response */
     $response = $this->gateway->completePurchase([])->send();
 
-    if (!$response->isRedirect() && $response->isSuccessful()) {
+    if (!$response->isRedirect() && $response->isSuccessful() && $order->state->value !== 'completed') {
       $this->capturePayment($order, $response);
     }
 
