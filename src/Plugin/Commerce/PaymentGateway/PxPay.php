@@ -27,7 +27,7 @@ use Drupal\Core\Form\FormStateInterface;
 class PxPay extends CommercePxPay {
 
   /**
-   * Fail Proof Result Notification.
+   * PxPay Service.
    *
    * @var \Drupal\commerce_dps\PaymentExpress\PxPayServiceInterface
    */
