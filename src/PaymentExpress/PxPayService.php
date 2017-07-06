@@ -2,6 +2,7 @@
 
 namespace Drupal\commerce_dps\PaymentExpress;
 
+use Drupal\Core\Url;
 use Omnipay\Omnipay;
 use Drupal\commerce_payment\Entity\PaymentInterface;
 use Psr\Log\LoggerInterface;
@@ -42,6 +43,33 @@ class PxPayService extends PaymentExpressService implements PxPayServiceInterfac
     $this->gateway->setParameter('amount', $payment->getAmount()->getNumber());
 
     $this->gateway->setParameter('description', $this->getReference() . ' #' . $payment->getOrderId());
+
+    if ($this->isIframeMethod()) {
+      $this->setIframeUrls($payment);
+    }
+
+  }
+
+  /**
+   * Prepare xml request data to PxPay.
+   */
+  public function setIframeUrls(PaymentInterface $payment) {
+
+    $cancelUrl = Url::fromRoute(
+      'commerce_dps.checkout.iframe.cancel',
+      ['commerce_order' => $payment->getOrderId()],
+      ['absolute' => TRUE]
+    )->toString();
+
+    $this->gateway->setParameter('cancelUrl', $cancelUrl);
+
+    $returnUrl = Url::fromRoute(
+      'commerce_dps.checkout.iframe.success',
+      ['commerce_order' => $payment->getOrderId()],
+      ['absolute' => TRUE]
+    )->toString();
+
+    $this->gateway->setParameter('returnUrl', $returnUrl);
   }
 
   /**

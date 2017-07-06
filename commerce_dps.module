@@ -4,3 +4,19 @@
  * @file
  * Integrates the DPS PX Pay gateway with Drupal Commerce.
  */
+
+/**
+ * Implements hook_theme().
+ */
+function commerce_dps_theme($existing, $type, $theme, $path) {
+
+  $items = [];
+
+  $items['commerce_dps_iframe'] = [
+    'variables' => [
+      'url' => NULL,
+    ],
+  ];
+
+  return $items;
+}

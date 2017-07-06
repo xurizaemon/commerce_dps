@@ -22,7 +22,7 @@ commerce_dps.checkout.iframe.cancel:
       commerce_order:
         type: entity:commerce_order
 
-commerce_dps.checkout.iframe.cancel:
+commerce_dps.checkout.iframe.success:
   path: '/checkout/{commerce_order}/iframe/success'
   defaults:
     _controller: '\Drupal\commerce_dps\Controller\OffSitePaymentController::iframeSuccess'

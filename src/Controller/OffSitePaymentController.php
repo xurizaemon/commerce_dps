@@ -4,7 +4,6 @@ namespace Drupal\commerce_dps\Controller;
 
 use Drupal\commerce_checkout\CheckoutOrderManager;
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
-use Drupal\Core\Link;
 use Drupal\Core\Url;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\RequestStack;
@@ -107,7 +106,7 @@ class OffSitePaymentController implements ContainerInjectionInterface {
   }
 
   /**
-   * @return array
+   * Generate iframe cancel page.
    */
   public function iframeCancel(RouteMatchInterface $route_match) {
 
@@ -115,42 +114,57 @@ class OffSitePaymentController implements ContainerInjectionInterface {
     $order = $route_match->getParameter('commerce_order');
 
     $url = Url::fromRoute(
-      'commerce_payment.checkout.cancel',
-      ['commerce_order' => $order->id(), 'step' => 'payment'],
+      'commerce_checkout.form',
+      ['commerce_order' => $order->id(), 'step' => 'review'],
       ['absolute' => TRUE]
     )->toString();
 
-//    $this->gateway->setParameter('cancelUrl', $url);
-
-    global $base_url;
-
-    $script = <<<JS
-      <script>
-//        window.top.location.href = "{$base_url}/checkout/{$order->id()}/review"; 
-        window.top.location.href = "{$url}"; 
-     </script>
-JS;
+    $script = $this->getScriptMarkup($url);
 
     return new Response($script, 200);
 
   }
 
   /**
-   * @return array
+   * Generate iframe success page.
    */
   public function iframeSuccess(RouteMatchInterface $route_match) {
 
     /** @var \Drupal\commerce_order\Entity\OrderInterface $order */
     $order = $route_match->getParameter('commerce_order');
 
-    $payment_gateway_plugin = $order->payment_gateway->entity->getPlugin();
+    $url = Url::fromRoute(
+      'commerce_checkout.form',
+      ['commerce_order' => $order->id(), 'step' => 'complete'],
+      ['absolute' => TRUE]
+    )->toString();
 
-    $data = array(
-      '#type' => 'markup',
-      '#markup' => 'Success',
-    );
+    $script = $this->getScriptMarkup($url);
 
-    return $data;
+    return new Response($script, 200);
+  }
+
+  /**
+   * Generate script markup.
+   */
+  private function getScriptMarkup($url) {
+
+    $render = [];
+
+    $item = [
+      '#theme' => 'commerce_dps_iframe',
+      '#url' => $url,
+    ];
+
+    $render['url'] = [
+      '#markup' => render($item),
+    ];
+
+    $render = render($render);
+
+    $script = $render->jsonSerialize();
+
+    return $script;
   }
 
 }

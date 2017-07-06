@@ -51,15 +51,6 @@ class PxPayForm extends PaymentOffsiteForm implements ContainerInjectionInterfac
 
     $this->pxPayService->preparePxPayXmlTransaction($form, $payment);
 
-    if ($this->pxPayService->isIframeMethod()) {
-      $cancelUrl = Url::fromRoute(
-        'commerce_dps.checkout.iframe.cancel',
-        ['commerce_order' => $payment->getOrderId()],
-        ['absolute' => TRUE]
-      )->toString();
-      $this->gateway->setParameter('cancelUrl', $cancelUrl);
-    }
-
     if ($this->pxPayService->getConfiguration('mode') === 'test') {
       $this->gateway->setTestMode(TRUE);
     }
@@ -82,14 +73,6 @@ class PxPayForm extends PaymentOffsiteForm implements ContainerInjectionInterfac
     }
 
     if ($this->pxPayService->isIframeMethod()) {
-
-//      global $base_url;
-
-//      $cancelUrl = Url::fromRoute('commerce_dps.checkout.iframe.cancel', ['order' => $payment->getOrder()]);
-
-//      $cancelUrl = "{$base_url}/checkout/{$payment->getOrderId()}/iframe/cancel";
-
-//      $this->gateway->setParameter('cancelUrl', $cancelUrl);
 
       $form['iframe'] = [
         '#markup' => sprintf(
