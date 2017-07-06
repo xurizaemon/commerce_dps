@@ -133,6 +133,14 @@ class OffSitePaymentController implements ContainerInjectionInterface {
     /** @var \Drupal\commerce_order\Entity\OrderInterface $order */
     $order = $route_match->getParameter('commerce_order');
 
+    $payment_gateway_plugin = $order->payment_gateway->entity->getPlugin();
+
+    $payment_gateway_plugin->onNotify($this->request);
+
+    $order->state = 'completed';
+
+    $order->save();
+
     $url = Url::fromRoute(
       'commerce_checkout.form',
       ['commerce_order' => $order->id(), 'step' => 'complete'],
