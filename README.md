@@ -33,12 +33,6 @@ Pretty much all the details required in the configuration interface are obtained
 Payment Express. If the inline documentation isn't clear, please file an issue and help
 improve the interface!
 
-## Testing
-
-We're starting to test with BrowserStack and Codeception, which gives us access to a wide variety of browser configurations using magic cloud goodness! Thanks BrowserStack :)
-
-<img src="https://resources.fudev.co.nz/browserstack-logo.png" height="40px" />
-
 ## Troubleshooting
 
 For any questions, the first point of reference should be the issue queue on Drupal.org.
