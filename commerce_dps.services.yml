@@ -8,6 +8,10 @@ services:
     class: Drupal\commerce_dps\PaymentExpress\PxPayService
     arguments: ['@commerce_dps.logger']
 
+  commerce_dps.pxpost_service:
+    class: Drupal\commerce_dps\PaymentExpress\PxPostService
+    arguments: ['@commerce_dps.logger']
+
   commerce_dps.payment_express:
       class: Drupal\commerce_dps\PaymentExpress\PaymentExpressService
       arguments: ['@commerce_dps.logger']

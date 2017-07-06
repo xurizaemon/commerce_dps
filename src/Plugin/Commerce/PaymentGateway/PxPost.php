@@ -27,6 +27,20 @@ use Drupal\Core\Form\FormStateInterface;
 class PxPost extends CommercePxPost {
 
   /**
+   * Fail Proof Result Notification.
+   *
+   * @var \Drupal\commerce_dps\PaymentExpress\PxPostServiceInterface
+   */
+  protected $pxPostService;
+
+  /**
+   * PxPay gateway.
+   *
+   * @var \Omnipay\PaymentExpress\PxPayGateway
+   */
+  protected $gateway;
+
+  /**
    * {@inheritdoc}
    */
   public function __construct(
@@ -39,13 +53,13 @@ class PxPost extends CommercePxPost {
   ) {
     parent::__construct($configuration, $plugin_id, $plugin_definition, $entity_type_manager, $payment_type_manager, $payment_method_type_manager);
 
-    $this->pxPayService = \Drupal::service('commerce_dps.pxpay_service');
+    $this->pxPostService = \Drupal::service('commerce_dps.pxpost_service');
 
-    $this->gateway = $this->pxPayService->getGateway();
+    $this->gateway = $this->pxPostService->getGateway();
 
-    $this->pxPayService->setConfiguration($configuration);
+    $this->pxPostService->setConfiguration($configuration);
 
-    $this->pxPayService->setCredentials();
+    $this->pxPostService->setCredentials();
   }
 
   /**

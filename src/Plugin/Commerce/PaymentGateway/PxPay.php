@@ -29,7 +29,7 @@ class PxPay extends CommercePxPay {
   /**
    * Fail Proof Result Notification.
    *
-   * @var \Drupal\commerce_dps\PxPayServiceInterface
+   * @var \Drupal\commerce_dps\PaymentExpress\PxPayServiceInterface
    */
   protected $pxPayService;
 
