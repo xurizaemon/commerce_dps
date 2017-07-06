@@ -85,7 +85,7 @@ class PaymentExpressService implements PaymentExpressServiceInterface {
 
     $currencies = [
       'CAD', 'CHF', 'DKK', 'EUR', 'FRF', 'GBP', 'HKD', 'JPY',
-      'xZD', 'SGD', 'THB', 'USD', 'ZAR', 'AUD', 'WST', 'VUV',
+      'NZD', 'SGD', 'THB', 'USD', 'ZAR', 'AUD', 'WST', 'VUV',
       'TOP', 'SBD', 'PGK', 'MYR', 'KWD', 'FJD',
     ];
 
