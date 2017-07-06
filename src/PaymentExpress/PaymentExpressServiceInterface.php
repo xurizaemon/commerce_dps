@@ -42,4 +42,9 @@ interface PaymentExpressServiceInterface {
    */
   public function getReference();
 
+  /**
+   * Is this a valid currency.
+   */
+  public function isValidateCurrency($code);
+
 }

@@ -81,6 +81,20 @@ class PaymentExpressService implements PaymentExpressServiceInterface {
   /**
    * {@inheritdoc}
    */
+  public function isValidateCurrency($code) {
+
+    $currencies = [
+      'CAD', 'CHF', 'DKK', 'EUR', 'FRF', 'GBP', 'HKD', 'JPY',
+      'xZD', 'SGD', 'THB', 'USD', 'ZAR', 'AUD', 'WST', 'VUV',
+      'TOP', 'SBD', 'PGK', 'MYR', 'KWD', 'FJD',
+    ];
+
+    return in_array($code, $currencies);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function getConfiguration($key = NULL) {
 
     if (array_key_exists($key, $this->configuration)) {

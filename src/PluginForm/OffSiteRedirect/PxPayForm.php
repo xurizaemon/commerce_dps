@@ -3,6 +3,7 @@
 namespace Drupal\commerce_dps\PluginForm\OffSiteRedirect;
 
 use Drupal\commerce_dps\PaymentExpress\PxPayServiceInterface;
+use Drupal\commerce_payment\Exception\PaymentGatewayException;
 use Drupal\commerce_payment\PluginForm\PaymentOffsiteForm;
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
 use Drupal\Core\Form\FormStateInterface;
@@ -58,6 +59,10 @@ class PxPayForm extends PaymentOffsiteForm implements ContainerInjectionInterfac
 
     if (empty($request->getRedirectUrl())) {
       $this->pxPayService->logger->error($request->getData()->ResponseText);
+    }
+
+    if (!$this->pxPayService->isValidateCurrency($payment->getAmount()->getCurrencyCode())) {
+      throw new PaymentGatewayException('Invalid currency. (' . $payment->getAmount()->getCurrencyCode() . ')');
     }
 
     if ($this->pxPayService->isRedirectMethod()) {

@@ -77,6 +77,15 @@ class PaymentExpressServiceTest extends UnitTestCase {
   }
 
   /**
+   * @covers ::isValidateCurrency
+   */
+  public function testIsValidateCurrency() {
+    $this->assertTrue($this->paymentExpressService->isValidateCurrency('NZD'));
+    $this->assertTrue($this->paymentExpressService->isValidateCurrency('USD'));
+    $this->assertFALSE($this->paymentExpressService->isValidateCurrency('foo'));
+  }
+
+  /**
    * @covers ::getConfiguration
    * @dataProvider configurationProvider
    */
