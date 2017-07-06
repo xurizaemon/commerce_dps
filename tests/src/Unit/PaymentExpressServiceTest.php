@@ -96,10 +96,7 @@ class PaymentExpressServiceTest extends UnitTestCase {
   }
 
   /**
-   * Data provider for ::testValidateSecurityCode.
-   *
-   * @return array
-   *   A list of testValidateSecurityCode function arguments.
+   * Test configuration data.
    */
   public function configurationProvider() {
     return [
