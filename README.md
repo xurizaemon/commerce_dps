@@ -12,13 +12,13 @@ Commerce DPS supports both merchant and gateway hosted billing methods, and toke
 
 ### PX Pay
 
-[PX Pay](https://www.paymentexpress.com/Products/Ecommerce/Payment_Express_Hosted) is a 
+[PX Pay](https://www.paymentexpress.com/Products/Ecommerce/Payment_Express_Hosted) is a
 payment solution hosted by Payment Express; your site won't see credit card details so
 you have less requirements for compliance. It's safer and simpler to implement.
 
 ### PX Post
 
-[PX Post](https://www.paymentexpress.com/Technical_Resources/Ecommerce_NonHosted/PxPost) 
+[PX Post](https://www.paymentexpress.com/Technical_Resources/Ecommerce_NonHosted/PxPost)
 is a payment solution you host on your site. Credit cards are entered at checkout on your
 site. You need to check with your bank whether they permit merchant-hosted checkout.
 
