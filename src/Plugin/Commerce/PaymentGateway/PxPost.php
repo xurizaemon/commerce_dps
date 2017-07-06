@@ -3,7 +3,6 @@
 namespace Drupal\commerce_dps\Plugin\Commerce\PaymentGateway;
 
 use Drupal\commerce_dps\PaymentExpress\CommercePxPost;
-use Drupal\commerce_dps\PluginForm\OnSite\PxPostForm;
 use Drupal\commerce_payment\PaymentMethodTypeManager;
 use Drupal\commerce_payment\PaymentTypeManager;
 use Drupal\Core\Entity\EntityTypeManagerInterface;

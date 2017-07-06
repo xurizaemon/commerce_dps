@@ -2,12 +2,7 @@
 
 namespace Drupal\commerce_dps\PaymentExpress;
 
-use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
-use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Psr\Log\LoggerInterface;
-use Omnipay\Omnipay;
-use Drupal\commerce_payment\Entity\PaymentInterface;
-use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * Class Payment Express Service.

@@ -2,8 +2,6 @@
 
 namespace Drupal\commerce_dps\PaymentExpress;
 
-use Drupal\commerce_payment\Entity\PaymentInterface;
-
 /**
  * Provides a handler for IPN requests from PayPal.
  */
