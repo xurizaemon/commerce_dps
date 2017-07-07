@@ -88,9 +88,9 @@ class PxPay extends CommercePxPay {
    */
   public function defaultConfiguration() {
     return array_merge([
-      'pxpay_user_id' => '',
-      'pxpay_key' => '',
-      'pxpay_ref_prefix' => 'Website Order',
+      'px_user' => '',
+      'px_key' => '',
+      'px_ref_prefix' => 'Website Order',
       'pxpay_integration_method' => 'redirect',
       'pxpay_iframe_attributes' => 'width="100%" height="750" frameborder="0"',
     ], parent::defaultConfiguration());
@@ -102,7 +102,7 @@ class PxPay extends CommercePxPay {
   public function buildConfigurationForm(array $form, FormStateInterface $form_state) {
     $form = parent::buildConfigurationForm($form, $form_state);
 
-    $key = 'pxpay_user_id';
+    $key = 'px_user';
     $form[$key] = [
       '#type' => 'textfield',
       '#title' => $this->t('PxPay UserId'),
@@ -110,7 +110,7 @@ class PxPay extends CommercePxPay {
       '#required' => TRUE,
     ];
 
-    $key = 'pxpay_key';
+    $key = 'px_key';
     $form[$key] = [
       '#type' => 'textfield',
       '#title' => $this->t('PxPay Key'),
@@ -118,7 +118,7 @@ class PxPay extends CommercePxPay {
       '#required' => TRUE,
     ];
 
-    $key = 'pxpay_ref_prefix';
+    $key = 'px_ref_prefix';
     $form[$key] = [
       '#type' => 'textfield',
       '#title' => $this->t('Merchant Reference Prefix'),
@@ -163,7 +163,7 @@ class PxPay extends CommercePxPay {
       $values = $form_state->getValue($form['#parents']);
 
       foreach ($values as $key => $value) {
-        if (preg_match("/^pxpay_(.*)$/i", $key)) {
+        if (preg_match("/^px(.*)$/i", $key)) {
           $this->configuration[$key] = $value;
         }
       }

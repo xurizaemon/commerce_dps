@@ -63,7 +63,7 @@ abstract class CommercePxPay extends OffsitePaymentGatewayBase implements Commer
 
     $payment_storage = $this->entityTypeManager->getStorage('commerce_payment');
 
-    $payment = $payment_storage->create([
+    $data = [
       'state' => ucfirst(strtolower($response->getMessage())),
       'amount' => $order->getTotalPrice(),
       'payment_gateway' => $this->entityId,
@@ -72,7 +72,9 @@ abstract class CommercePxPay extends OffsitePaymentGatewayBase implements Commer
       'remote_id' => $response->getTransactionId(),
       'remote_state' => $response->getMessage(),
       'authorized' => \Drupal::time()->getRequestTime(),
-    ]);
+    ];
+
+    $payment = $payment_storage->create($data);
 
     $payment->save();
   }

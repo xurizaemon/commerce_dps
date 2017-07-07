@@ -111,9 +111,9 @@ class PaymentExpressServiceTest extends UnitTestCase {
     return [
       [
         [
-          'pxpay_user_id' => 'foo',
-          'pxpay_key' => 'bar',
-          'pxpay_ref_prefix' => 'baz',
+          'px_user' => 'foo',
+          'px_key' => 'bar',
+          'px_ref_prefix' => 'baz',
           'foo' => 'bar',
         ],
       ],

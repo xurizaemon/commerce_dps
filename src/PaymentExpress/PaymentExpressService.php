@@ -61,21 +61,21 @@ class PaymentExpressService implements PaymentExpressServiceInterface {
    * {@inheritdoc}
    */
   public function getUserId() {
-    return $this->getConfiguration('pxpay_user_id');
+    return $this->getConfiguration('px_user');
   }
 
   /**
    * {@inheritdoc}
    */
   public function getKey() {
-    return $this->getConfiguration('pxpay_key');
+    return $this->getConfiguration('px_key');
   }
 
   /**
    * {@inheritdoc}
    */
   public function getReference() {
-    return $this->getConfiguration('pxpay_ref_prefix');
+    return $this->getConfiguration('px_ref_prefix');
   }
 
   /**

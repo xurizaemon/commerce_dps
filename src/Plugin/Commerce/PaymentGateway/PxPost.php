@@ -67,9 +67,9 @@ class PxPost extends CommercePxPost {
    */
   public function defaultConfiguration() {
     return array_merge([
-      'pxpost_username' => '',
-      'pxpost_password' => '',
-      'pxpost_ref_prefix' => 'Website Order',
+      'px_user' => '',
+      'px_key' => '',
+      'px_ref_prefix' => 'Website Order',
     ], parent::defaultConfiguration());
   }
 
@@ -79,7 +79,7 @@ class PxPost extends CommercePxPost {
   public function buildConfigurationForm(array $form, FormStateInterface $form_state) {
     $form = parent::buildConfigurationForm($form, $form_state);
 
-    $key = 'pxpost_username';
+    $key = 'px_user';
     $form[$key] = [
       '#type' => 'textfield',
       '#title' => $this->t('PxPost Username'),
@@ -87,7 +87,7 @@ class PxPost extends CommercePxPost {
       '#required' => TRUE,
     ];
 
-    $key = 'pxpost_password';
+    $key = 'px_key';
     $form[$key] = [
       '#type' => 'textfield',
       '#title' => $this->t('PxPost Password Key'),
@@ -95,7 +95,7 @@ class PxPost extends CommercePxPost {
       '#required' => TRUE,
     ];
 
-    $key = 'pxpost_ref_prefix';
+    $key = 'px_ref_prefix';
     $form[$key] = [
       '#type' => 'textfield',
       '#title' => $this->t('Merchant Reference Prefix'),
@@ -116,7 +116,7 @@ class PxPost extends CommercePxPost {
       $values = $form_state->getValue($form['#parents']);
 
       foreach ($values as $key => $value) {
-        if (preg_match("/^pxpost_(.*)$/i", $key)) {
+        if (preg_match("/^px_(.*)$/i", $key)) {
           $this->configuration[$key] = $value;
         }
       }
