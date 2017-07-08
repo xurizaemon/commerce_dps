@@ -225,11 +225,11 @@ function commerce_dps_pxpay_settings_form($settings = NULL) {
   $form['commerce_dps_pxpay_server'] = array(
     '#type' => 'select',
     '#title' => t('PX Pay server'),
-    '#description' => t('If you are using the DPS PXPay 2.0 service, select it here.'),
+    '#description' => t('Select PxPay endpoint to use. Default is 2.0'),
     '#options' => array(
-      'https://sec.paymentexpress.com/pxpay/pxaccess.aspx' => ('PX Pay 1.0'),
-      'https://sec.paymentexpress.com/pxaccess/pxpay.aspx' => ('PX Pay 2.0'),
-      'https://uat.paymentexpress.com/pxaccess/pxpay.aspx' => ('PxPay UAT'),
+      'https://sec.paymentexpress.com/pxaccess/pxpay.aspx' => ('PxPay 2.0'),
+      'https://sec.paymentexpress.com/pxpay/pxaccess.aspx' => ('PxPay 1.0'),
+      'https://uat.paymentexpress.com/pxaccess/pxpay.aspx' => ('PxPay 2.0 UAT'),
     ),
     '#default_value' => $settings['commerce_dps_pxpay_server'],
     '#required' => TRUE,
