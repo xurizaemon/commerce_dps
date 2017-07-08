@@ -7,7 +7,7 @@
 
 define('COMMERCE_DPS_PXPAY_USERID', 'Sample User');
 define('COMMERCE_DPS_PXPAY_KEY', 'Sample Key');
-define('COMMERCE_DPS_PXPAY_SERVER', 'https://sec.paymentexpress.com/pxpay/pxaccess.aspx');
+define('COMMERCE_DPS_PXPAY_SERVER', 'https://sec.paymentexpress.com/pxaccess/pxpay.aspx');
 define('COMMERCE_DPS_PXPAY_CURRENCY', 'NZD');
 define('COMMERCE_DPS_PXPAY_CANCEL_RETURN_URL', 'cart');
 define('COMMERCE_DPS_PXPAY_REFPREFIX', 'Website Order');
@@ -227,8 +227,9 @@ function commerce_dps_pxpay_settings_form($settings = NULL) {
     '#title' => t('PX Pay server'),
     '#description' => t('If you are using the DPS PXPay 2.0 service, select it here.'),
     '#options' => array(
-      'https://sec.paymentexpress.com/pxpay/pxaccess.aspx' => ('PX Pay'),
+      'https://sec.paymentexpress.com/pxpay/pxaccess.aspx' => ('PX Pay 1.0'),
       'https://sec.paymentexpress.com/pxaccess/pxpay.aspx' => ('PX Pay 2.0'),
+      'https://uat.paymentexpress.com/pxaccess/pxpay.aspx' => ('PxPay UAT'),
     ),
     '#default_value' => $settings['commerce_dps_pxpay_server'],
     '#required' => TRUE,
@@ -427,7 +428,7 @@ function commerce_dps_pxpay_process_fprn($order) {
   $payment_data = commerce_payment_method_instance_load($payment_method);
 
   $transaction = array(
-    'server' => COMMERCE_DPS_PXPAY_SERVER,
+    'server' => $payment_data['settings']['commerce_dps_pxpay_server'],
     'user_id' => $payment_data['settings']['commerce_dps_pxpay_userid'],
     'key' => $payment_data['settings']['commerce_dps_pxpay_key'],
     'log' => $payment_data['settings']['commerce_dps_pxpay_log_transactions'],
