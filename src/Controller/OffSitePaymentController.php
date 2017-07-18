@@ -137,7 +137,9 @@ class OffSitePaymentController implements ContainerInjectionInterface {
 
     $payment_gateway_plugin->onNotify($this->request);
 
-    $order->state = 'completed';
+    $transition = $order->getState()->getWorkflow()->getTransition('place');
+
+    $order->getState()->applyTransition($transition);
 
     $order->save();
 

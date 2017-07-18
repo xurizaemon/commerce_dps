@@ -19,7 +19,7 @@ class PxPayForm extends PaymentOffsiteForm implements ContainerInjectionInterfac
   /**
    * The PxPay Service.
    *
-   * @var \Drupal\commerce_dps\Plugin\Commerce\PaymentGateway\PxPay
+   * @var \Drupal\commerce_dps\Plugin\Commerce\PaymentGateway\
    */
   protected $pxPayService;
 
