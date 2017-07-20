@@ -68,7 +68,6 @@ abstract class CommercePxPay extends OffsitePaymentGatewayBase implements Commer
       'amount' => $order->getTotalPrice(),
       'payment_gateway' => $this->entityId,
       'order_id' => $order->id(),
-      'test' => $this->getMode() == 'test',
       'remote_id' => $response->getTransactionId(),
       'remote_state' => $response->getMessage(),
       'authorized' => \Drupal::time()->getRequestTime(),

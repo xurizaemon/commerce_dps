@@ -113,9 +113,24 @@ class OffSitePaymentController implements ContainerInjectionInterface {
     /** @var \Drupal\commerce_order\Entity\OrderInterface $order */
     $order = $route_match->getParameter('commerce_order');
 
+    $payment_gateway = $order->get('payment_gateway')->entity;
+
+    $payment_gateway_plugin = $payment_gateway->getPlugin();
+
+    $payment_gateway_plugin->onCancel($order, $this->request);
+
+    /** @var \Drupal\commerce_checkout\Entity\CheckoutFlowInterface $checkout_flow */
+    $checkout_flow = $order->get('checkout_flow')->entity;
+
+    $checkout_flow_plugin = $checkout_flow->getPlugin();
+
+    $step_id = $this->checkoutOrderManager->getCheckoutStepId($order);
+
+    $previous_step_id = $checkout_flow_plugin->getPreviousStepId($step_id);
+
     $url = Url::fromRoute(
       'commerce_checkout.form',
-      ['commerce_order' => $order->id(), 'step' => 'review'],
+      ['commerce_order' => $order->id(), 'step' => $previous_step_id],
       ['absolute' => TRUE]
     )->toString();
 
@@ -143,9 +158,11 @@ class OffSitePaymentController implements ContainerInjectionInterface {
 
     $order->save();
 
+    $step_id = $this->checkoutOrderManager->getCheckoutStepId($order);
+
     $url = Url::fromRoute(
       'commerce_checkout.form',
-      ['commerce_order' => $order->id(), 'step' => 'complete'],
+      ['commerce_order' => $order->id(), 'step' => $step_id],
       ['absolute' => TRUE]
     )->toString();
 
