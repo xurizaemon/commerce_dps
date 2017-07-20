@@ -5,6 +5,7 @@ namespace Drupal\commerce_dps\Plugin\Commerce\PaymentGateway;
 use Drupal\commerce_dps\PaymentExpress\CommercePxPay;
 use Drupal\commerce_payment\PaymentMethodTypeManager;
 use Drupal\commerce_payment\PaymentTypeManager;
+use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Form\FormStateInterface;
 
@@ -55,6 +56,8 @@ class PxPay extends CommercePxPay {
    *   The payment type manager.
    * @param \Drupal\commerce_payment\PaymentMethodTypeManager $payment_method_type_manager
    *   The payment method type manager.
+   * @param \Drupal\Component\Datetime\TimeInterface $time
+   *   The time.
    */
   public function __construct(
     array $configuration,
@@ -62,7 +65,8 @@ class PxPay extends CommercePxPay {
     $plugin_definition,
     EntityTypeManagerInterface $entity_type_manager,
     PaymentTypeManager $payment_type_manager,
-    PaymentMethodTypeManager $payment_method_type_manager
+    PaymentMethodTypeManager $payment_method_type_manager,
+    TimeInterface $time
   ) {
     parent::__construct(
       $configuration,
@@ -70,7 +74,8 @@ class PxPay extends CommercePxPay {
       $plugin_definition,
       $entity_type_manager,
       $payment_type_manager,
-      $payment_method_type_manager
+      $payment_method_type_manager,
+      $time
     );
 
     $this->pxPayService = \Drupal::service('commerce_dps.pxpay_service');
