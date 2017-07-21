@@ -40,6 +40,9 @@ abstract class CommercePxPay extends OffsitePaymentGatewayBase implements Commer
     if (!$response->isRedirect() && !$response->isSuccessful()) {
       $this->capturePayment($order, $response);
     }
+
+    parent::onCancel($order, $request);
+
   }
 
   /**
