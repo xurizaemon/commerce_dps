@@ -76,6 +76,13 @@ abstract class CommercePxPay extends OffsitePaymentGatewayBase implements Commer
       'authorized' => \Drupal::time()->getRequestTime(),
     ];
 
+    /** @var \Drupal\commerce_dps\PaymentExpress\PaymentExpressService $pxPayService */
+    $pxPayService = $this->pxPayService;
+
+    $module_handler = $pxPayService->getModuleHandler();
+
+    $module_handler->alter('commerce_dps_pxpay_capture_payment', $data, $order, $response);
+
     $payment = $payment_storage->create($data);
 
     $payment->save();

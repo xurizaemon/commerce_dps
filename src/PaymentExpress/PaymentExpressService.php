@@ -2,6 +2,7 @@
 
 namespace Drupal\commerce_dps\PaymentExpress;
 
+use Drupal\Core\Extension\ModuleHandlerInterface;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -33,13 +34,23 @@ class PaymentExpressService implements PaymentExpressServiceInterface {
   public $gateway;
 
   /**
+   * Module handler.
+   *
+   * @var \Drupal\Core\Extension\ModuleHandlerInterface
+   */
+  protected $moduleHandle;
+
+  /**
    * Constructs a new PaymentGatewayBase object.
    *
    * @param \Psr\Log\LoggerInterface $logger
    *   The logger channel.
+   * @param \Drupal\Core\Extension\ModuleHandlerInterface $module_handler
+   *   The module handler.
    */
-  public function __construct(LoggerInterface $logger) {
+  public function __construct(LoggerInterface $logger, ModuleHandlerInterface $module_handler) {
     $this->logger = $logger;
+    $this->moduleHandle = $module_handler;
   }
 
   /**
@@ -109,6 +120,13 @@ class PaymentExpressService implements PaymentExpressServiceInterface {
    */
   public function setConfiguration(array $configuration) {
     $this->configuration = $configuration;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getModuleHandler() {
+    return $this->moduleHandle;
   }
 
 }

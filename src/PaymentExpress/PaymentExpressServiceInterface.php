@@ -47,4 +47,9 @@ interface PaymentExpressServiceInterface {
    */
   public function isValidateCurrency($code);
 
+  /**
+   * Get the module handler.
+   */
+  public function getModuleHandler();
+
 }

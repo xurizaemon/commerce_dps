@@ -2,6 +2,7 @@
 
 namespace Drupal\commerce_dps\PaymentExpress;
 
+use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Url;
 use Omnipay\Omnipay;
 use Drupal\commerce_payment\Entity\PaymentInterface;
@@ -24,8 +25,8 @@ class PxPostService extends PaymentExpressService implements PxPostServiceInterf
   /**
    * Constructs a new PxPay Service.
    */
-  public function __construct(LoggerInterface $logger) {
-    parent::__construct($logger);
+  public function __construct(LoggerInterface $logger, ModuleHandlerInterface $module_handler) {
+    parent::__construct($logger, $module_handler);
     $this->gateway = Omnipay::create("\\Omnipay\\PaymentExpress\\PxPostGateway");
   }
 
