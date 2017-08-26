@@ -21,7 +21,7 @@
  *   The payment gateway response.
  */
 function hook_commerce_dps_pxpay_capture_payment_alter(
-  &$data,
+  array &$data,
   \Drupal\commerce_order\Entity\OrderInterface $order,
   \Omnipay\Common\Message\ResponseInterface $response
 ) {
