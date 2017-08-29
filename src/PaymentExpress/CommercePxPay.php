@@ -41,7 +41,26 @@ abstract class CommercePxPay extends OffsitePaymentGatewayBase implements Commer
       $this->capturePayment($order, $response);
     }
 
-    parent::onCancel($order, $request);
+    $response_data = $response->getData();
+
+    if (!$response->isSuccessful() && !empty($response_data->ReCo) && $response_data->ReCo[0] != 'RC') {
+
+      $message = ucwords(strtolower($response->getMessage()));
+
+      drupal_set_message(
+        $this->t(
+          'Sorry @gateway failed with "@message". You may resume the checkout process on this page when you are ready.',
+          [
+            '@message' => $message,
+            '@gateway' => $this->getDisplayLabel(),
+          ]
+        ),
+        'error'
+      );
+    }
+    else {
+      parent::onCancel($order, $request);
+    }
 
   }
 
