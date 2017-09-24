@@ -1,0 +1,12 @@
+commerce_payment.commerce_payment_gateway.plugin.dps_pxpay:
+  type: commerce_payment_gateway_configuration
+  mapping:
+    px_user:
+      type: string
+      label: 'PxPay UserId'
+    px_key:
+      type: string
+      label: 'PxPay Key'
+    px_ref_prefix:
+      type: string
+      label: 'Merchant Reference Prefix'

@@ -1,0 +1,17 @@
+services:
+  commerce_dps.logger:
+    class: Drupal\Core\Logger\LoggerChannel
+    factory: logger.factory:get
+    arguments: ['commerce_dps']
+
+  commerce_dps.pxpay_service:
+    class: Drupal\commerce_dps\PaymentExpress\PxPayService
+    arguments: ['@commerce_dps.logger', '@module_handler']
+
+  commerce_dps.pxpost_service:
+    class: Drupal\commerce_dps\PaymentExpress\PxPostService
+    arguments: ['@commerce_dps.logger', '@module_handler']
+
+  commerce_dps.payment_express:
+      class: Drupal\commerce_dps\PaymentExpress\PaymentExpressService
+      arguments: ['@commerce_dps.logger', '@module_handler']

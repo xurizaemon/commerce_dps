@@ -1,0 +1,35 @@
+commerce_dps.checkout.fprn:
+  path: '/checkout/{commerce_order}/fprn'
+  defaults:
+    _controller: '\Drupal\commerce_dps\Controller\OffSitePaymentController::notifyPage'
+  requirements:
+    _custom_access: '\Drupal\commerce_dps\Controller\OffSitePaymentController::checkAccess'
+    _module_dependencies: commerce_checkout
+  options:
+    parameters:
+      commerce_order:
+        type: entity:commerce_order
+
+commerce_dps.checkout.iframe.cancel:
+  path: '/checkout/{commerce_order}/iframe/cancel'
+  defaults:
+    _controller: '\Drupal\commerce_dps\Controller\OffSitePaymentController::iframeCancel'
+  requirements:
+    _access: 'TRUE'
+    _module_dependencies: commerce_checkout
+  options:
+    parameters:
+      commerce_order:
+        type: entity:commerce_order
+
+commerce_dps.checkout.iframe.success:
+  path: '/checkout/{commerce_order}/iframe/success'
+  defaults:
+    _controller: '\Drupal\commerce_dps\Controller\OffSitePaymentController::iframeSuccess'
+  requirements:
+    _access: 'TRUE'
+    _module_dependencies: commerce_checkout
+  options:
+    parameters:
+      commerce_order:
+        type: entity:commerce_order
