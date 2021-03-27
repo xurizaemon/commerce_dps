@@ -6,6 +6,7 @@
     "license": "GPL-2.0+",
     "require": {
         "drupal/commerce": "~2",
-        "omnipay/paymentexpress": "~2.0"
+        "league/omnipay": "~3.0",
+        "omnipay/paymentexpress": "~3.0"
     }
 }
