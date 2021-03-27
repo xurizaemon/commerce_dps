@@ -58,11 +58,14 @@ class PxPayForm extends PaymentOffsiteForm implements ContainerInjectionInterfac
     $request = $this->gateway->purchase()->send();
 
     if (empty($request->getRedirectUrl())) {
-      $this->pxPayService->logger->error($request->getData()->ResponseText);
+      $error = (string) $request->getData()->ResponseText;
+      $code = (string) $request->getData()->Reco;
+      throw new PaymentGatewayException("Commerce PxPay error: [{$code}] {$error}");
     }
 
     if (!$this->pxPayService->isValidateCurrency($payment->getAmount()->getCurrencyCode())) {
-      throw new PaymentGatewayException('Invalid currency. (' . $payment->getAmount()->getCurrencyCode() . ')');
+      $currencyCode = $payment->getAmount()->getCurrencyCode();
+      throw new PaymentGatewayException("Commerce PxPay error: Invalid currency '{$currencyCode}'");
     }
 
     if ($this->pxPayService->isRedirectMethod()) {
