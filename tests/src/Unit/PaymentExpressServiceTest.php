@@ -5,7 +5,6 @@ namespace Drupal\Tests\commerce_dps\Unit;
 use Drupal\commerce_dps\PaymentExpress\PaymentExpressService;
 use Drupal\Core\DependencyInjection\ContainerBuilder;
 use Drupal\Tests\UnitTestCase;
-use Psr\Log\LoggerInterface;
 
 /**
  * @coversDefaultClass \Drupal\commerce_dps\PaymentExpress\PaymentExpressService
@@ -13,8 +12,6 @@ use Psr\Log\LoggerInterface;
  * @group commerce_dps
  */
 class PaymentExpressServiceTest extends UnitTestCase {
-
-  protected $paymentExpressMock;
 
   /**
    * PxPay gateway.
@@ -27,18 +24,12 @@ class PaymentExpressServiceTest extends UnitTestCase {
    * {@inheritdoc}
    */
   protected function setUp() {
-
     parent::setUp();
-
-    $this->loggerMock = $this->getMockBuilder(LoggerInterface::class)
-      ->disableOriginalConstructor()
-      ->getMock();
-
+    $loggerMock = $this->createMock('Psr\Log\LoggerInterface');
+    $moduleHandlerMock = $this->createMock('\Drupal\Core\Extension\ModuleHandlerInterface');
     $this->container = new ContainerBuilder();
-
-    $this->container->set('logger.factory', $this->loggerMock);
-
-    $this->paymentExpressService = new PaymentExpressService($this->loggerMock);
+    $this->container->set('logger.factory', $loggerMock);
+    $this->paymentExpressService = new PaymentExpressService($loggerMock, $moduleHandlerMock);
   }
 
   /**

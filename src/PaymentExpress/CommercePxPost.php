@@ -17,42 +17,42 @@ abstract class CommercePxPost extends OnsitePaymentGatewayBase implements Onsite
    * {@inheritdoc}
    */
   public function createPaymentMethod(PaymentMethodInterface $payment_method, array $payment_details) {
-    // TODO: Implement createPaymentMethod() method.
+    // @todo Implement createPaymentMethod() method.
   }
 
   /**
    * {@inheritdoc}
    */
   public function createPayment(PaymentInterface $payment, $capture = TRUE) {
-    // TODO: Implement createPayment() method.
+    // @todo Implement createPayment() method.
   }
 
   /**
    * {@inheritdoc}
    */
   public function capturePayment(PaymentInterface $payment, Price $amount = NULL) {
-    // TODO: Implement capturePayment() method.
+    // @todo Implement capturePayment() method.
   }
 
   /**
    * {@inheritdoc}
    */
   public function refundPayment(PaymentInterface $payment, Price $amount = NULL) {
-    // TODO: Implement refundPayment() method.
+    // @todo Implement refundPayment() method.
   }
 
   /**
    * {@inheritdoc}
    */
   public function deletePaymentMethod(PaymentMethodInterface $payment_method) {
-    // TODO: Implement deletePaymentMethod() method.
+    // @todo Implement deletePaymentMethod() method.
   }
 
   /**
    * {@inheritdoc}
    */
   public function voidPayment(PaymentInterface $payment) {
-    // TODO: Implement voidPayment() method.
+    // @todo Implement voidPayment() method.
   }
 
 }

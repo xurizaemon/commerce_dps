@@ -3,7 +3,6 @@
 namespace Drupal\commerce_dps\PaymentExpress;
 
 use Drupal\Core\Extension\ModuleHandlerInterface;
-use Drupal\Core\Url;
 use Omnipay\Omnipay;
 use Drupal\commerce_payment\Entity\PaymentInterface;
 use Psr\Log\LoggerInterface;
